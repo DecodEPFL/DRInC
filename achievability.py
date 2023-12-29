@@ -9,7 +9,7 @@ import numpy as np
 from data_structures import LinearSystem
 
 
-def achievability_constraints(sys, t_fir):
+def achievability_constraints(sys: LinearSystem, t_fir: int):
     """
     This function generates the closure that defines the achievability
     constraints for the system sys. The closure can be used afterward for
