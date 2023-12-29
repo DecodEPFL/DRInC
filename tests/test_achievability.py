@@ -26,8 +26,8 @@ def test_achievability_constraints(verbose=False):
     mkcons = achievability_constraints(sys, t_fir)
 
     # Generate a random closed loop map
-    phi = cp.Variable(((_n+_p), (_n+_m)*t_fir))
-    phi_tar = np.random.randn((_n+_p), (_n+_m)*t_fir)
+    phi = cp.Variable(((_n + _m), (_n + _p) * t_fir))
+    phi_tar = np.random.randn((_n + _m), (_n + _p) * t_fir)
 
     # Try to be random but still satisfy constraints
     cp.Problem(cp.Minimize(cp.norm(phi - phi_tar, 'fro')),
