@@ -1,7 +1,6 @@
 import numpy as np
 import cvxpy as cp
-from cvar import *
-from data_structures import LinearSystem, Polytope
+from data_structures import Polytope
 from cvar import cvar_constraints
 
 
@@ -56,17 +55,17 @@ def test_cvar_constraints(verbose=False):
     violations = np.max(fset.h @ phi @ test_xis - fset.g, axis=0)
     exp_viol = np.mean(np.sort(violations)[-int(p_level * _ntest):])
 
+    if verbose:
+        print(f"Average constraint violation of target: {exp_viol_tar}")
+        print(f"Average constraint violation of result: {exp_viol}")
+
     # Check constraints
     assert (exp_viol <= 1e-8)
 
     if verbose:
-        print(f"Expected constraint violation of target: {exp_viol_tar}")
-        print(f"Constraint violation of result: {exp_viol}")
         print("All tests passed")
 
 
 # Press the green button in the gutter to run the test.
 if __name__ == '__main__':
-    np.set_printoptions(linewidth=120, precision=2)
-    # for k in range(10):
     test_cvar_constraints(True)

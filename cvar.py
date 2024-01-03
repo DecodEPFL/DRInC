@@ -52,7 +52,7 @@ def cvar_constraints(feasible_set: Polytope, support: Polytope,
 
         # Short notations
         _n = xis.shape[1]  # Number of samples
-        _g = cp.vstack((-feasible_set.g, tau))
+        _g = cp.vstack((feasible_set.g, -tau))
 
         # One-of Constraints
         cons = [rho >= 0,
@@ -64,7 +64,7 @@ def cvar_constraints(feasible_set: Polytope, support: Polytope,
             cons += [k_i >= 0]
 
             for j, _gj in enumerate(_G):
-                _s = zeta[i] - (_gj @ phi @ xii + _g[j])/_y \
+                _s = zeta[i] - (_gj @ phi @ xii - _g[j])/_y \
                     - (_H @ xii[:, None] + _h).T @ k_i[j, :]
 
                 _od = phi.T @ _gj[:, None] / _y - _H.T @ k_i[[j], :].T
