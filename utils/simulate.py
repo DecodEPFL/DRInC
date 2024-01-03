@@ -8,6 +8,21 @@ Copyright Jean-Sébastien Brouillon (2024)
 import numpy as np
 
 
+def simulate(phi, sys, xis_profile, x0=None):
+    """
+    Simulates the closed loop system defined by the SLS closed loop map phi
+    and the system sys, with the noise distribution given by the empirical
+    distribution xis_profile.
+    :param phi: SLS closed loop map phi
+    :param sys: LinearSystem, system to simulate
+    :param xis_profile: empirical distribution over a finite horizon, each
+        column is a sample.
+    :param x0: initial state for t_fir time steps, if None, the origin is used.
+    :return: x, u, y, e, the state, input, output, and error trajectories of
+        the closed loop system.
+    """
+
+
 def split_clm(phi, n_states, t_fir):
     """
     splits the closed loop map phi into its components.

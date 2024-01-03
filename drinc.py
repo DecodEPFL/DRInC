@@ -15,7 +15,8 @@ from dro import drinc_cost
 
 
 def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
-                     support: Polytope, radius: float, p_level: float):
+                     support: Polytope, radius: float, p_level: float,
+                     verbose=False):
     """
     This function generates the closure that defines the distributionally robust
     control design problem from "Distributionally Robust Infinite-horizon Control"
@@ -28,10 +29,12 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     :param support: Polytope, the support of the noise distribution.
     :param radius: Radius of the Wasserstein ball
     :param p_level: Probability level of the cvar constraints
-    :return: closure with signature (phi, xis) -> cons, where phi is the SLS
+    :param verbose: bool, if True, prints the optimization verbose.
+    :return: closure with signature (xis, weights) -> phi, where phi is the SLS
         closed loop map, xis are the samples of the empirical distribution at
-         the center of the Wasserstein ball (one column per sample), and cons
-         is a list of linear matrix inequality constraints.
+         the center of the Wasserstein ball (one column per sample), and weights
+         is the matrix square root of the weights W of the control cost
+         [x_t, u_t]^T W [x_t, u_t].
     """
 
     # No argument checks, they are performed in daughter functions
@@ -47,8 +50,20 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     mkcvar = cvar_constraints(feasible_set, support, radius, p_level)
     mkcost, mkcons = drinc_cost(support, radius)
 
-    def mkdrinc(xis):
+    def mkdrinc(xis, weights=None):
         phi = cp.Variable((_n + _m, (_n + _p) * _t))
+        q = cp.Variable(((_n + _p) * _t, (_n + _p) * _t))
+
+        # Generate the constraints
+        cons = [mkach(phi), mkcvar(phi, xis), mkcons(phi, xis)]
+
+        # Add the link between Q and phi
+        cons += [cp.bmat([[q, (weights @ phi).T],
+                          [weights @ phi, np.eye(_n + _m)]]) >> 0],
+
+        # Solve the optimization problem
+        cp.Problem(cp.Minimize(mkcost(q, xis)), cons).solve(verbose=verbose)
+
         return phi.value
 
     return mkdrinc

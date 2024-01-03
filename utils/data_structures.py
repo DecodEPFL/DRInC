@@ -1,5 +1,5 @@
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-Useful structires for the project. This is a utility file defining the
+Useful structures for the project. This is a utility file defining the
 classes for linear systems, polytopes, and other useful structures.
 
 Copyright Jean-Sébastien Brouillon (2024)

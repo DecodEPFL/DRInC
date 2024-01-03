@@ -19,9 +19,9 @@ def drinc_cost(support: Polytope, radius: float):
     The closure can be used afterward for various different DRO problems over
     the cost matrix and for noise the distributions in a Wasserstein ball around
     various empirical centers.
-    :@param support: Polytope, the support of the noise distribution.
-    :@param radius: Radius of the Wasserstein ball.
-    :@return: tuple of closures with signature (Q, xis) -> cost or cons, where
+    :param support: Polytope, the support of the noise distribution.
+    :param radius: Radius of the Wasserstein ball.
+    :return: tuple of closures with signature (Q, xis) -> cost or cons, where
         Q is the cost matrix, xis are the samples of the empirical distribution
         at the center of the Wasserstein ball (one column per sample), cost the
         distributionally robust risk of the given Q and xis, and cons is a list
