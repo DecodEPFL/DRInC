@@ -33,7 +33,7 @@ def test_achievability_constraints(verbose=False):
     cp.Problem(cp.Minimize(cp.norm(phi - phi_tar, 'fro')),
                mkcons(phi)).solve(verbose=verbose)
     # Transform to list and store shifted values
-    phi = list(split_clm(phi.value, _n, t_fir))
+    phi = list(reversed(split_clm(phi.value, _n, t_fir)))
     phis = phi[1:] + [0*phi[0]]
 
     # Check constraints

@@ -30,6 +30,7 @@ def get_distribution(name: str, param=None):
         samples of the distribution.
     """
 
+    # TODO: transform param into mutable to store current time for profiles
     if name.lower() == "gaussian":
         def distribution(n):
             return rng.standard_normal((n, 1))
