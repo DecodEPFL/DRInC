@@ -8,7 +8,7 @@ Copyright Jean-Sébastien Brouillon (2024)
 
 import numpy as np
 import cvxpy as cp
-from data_structures import Polytope
+from utils.data_structures import Polytope
 
 
 def drinc_cost(support: Polytope, radius: float):
@@ -27,12 +27,57 @@ def drinc_cost(support: Polytope, radius: float):
         distributionally robust risk of the given Q and xis, and cons is a list
         of linear matrix inequality constraints.
     """
+
+    # Check that the radius is positive
+    if radius <= 0:
+        raise ValueError("The radius must be positive.")
+
+    # Short notations
+    _H = support.h
+    _h = support.g if len(support.g.shape) == 2 else support.g[:, None]
     _l = cp.Variable()
+    mean_si = cp.Variable()
 
-    def cost(q, xis):
-        return _l
+    def mkcost(q, xis):
+        return _l * radius + mean_si
 
-    def cons(q, xis):
-        return [_l >= 3]
+    def mkcons(q, xis):
+        _n = xis.shape[1]  # Number of samples
 
-    return cost, cons
+        # Optimization variables
+        _a = cp.Variable((1, 1))
+        _s = cp.Variable((_n, 1))
+        _mu = cp.Variable((_H.shape[0], _n))
+        _psi = cp.Variable((_H.shape[0], _n))
+
+        # Equality constraints
+        cons = [mean_si >= cp.sum(_s) / _n]
+
+        print((cp.sum(_s) / _n))
+        print(_s.shape)
+        print(mean_si)
+
+        # Inequality constraints
+        cons += [_l >= 0, _mu >= 0, _psi >= -_mu, _a >= 0]
+
+        # Matrix inequality constraints
+        _q2 = cp.kron(np.diag([1, 0]), 4 * np.eye(q.shape[0]) * _l) \
+            + cp.kron(np.diag([-1, 1]), 4 * q)
+        for i, (xii, (mui, psii)) in enumerate(zip(xis.T, zip(_mu.T, _psi.T))):
+            # Element [1,1]
+            _scalar = _s[[i]] - _h.T @ psii + _l * xii.T @ xii
+            # Elements [2:end, 1]
+            _vec = cp.hstack([_l * xii * 2 + _H.T @ psii, _H.T @ mui])[:, None]
+
+            # Main LMI
+            cons += [cp.bmat([[_scalar, _vec.T], [_vec, _q2]]) >> 0]
+
+            # Orthogonality constraint
+            _h_mui = _H.T @ mui[:, None]
+            cons += [mui == 0]  # TODO: Remove this and get why mosek fucks up
+            cons += [cp.bmat([[_a, _h_mui.T],
+                              [_h_mui, np.eye(q.shape[0]) * _l - q*0]]) >> 0]
+
+        return cons
+
+    return mkcost, mkcons

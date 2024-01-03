@@ -8,7 +8,7 @@ Copyright Jean-Sébastien Brouillon (2024)
 
 import numpy as np
 import cvxpy as cp
-from data_structures import Polytope
+from utils.data_structures import Polytope
 
 
 def cvar_constraints(feasible_set: Polytope, support: Polytope,

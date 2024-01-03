@@ -1,6 +1,6 @@
 import numpy as np
 import cvxpy as cp
-from data_structures import LinearSystem, Polytope
+from utils.data_structures import Polytope
 from dro import drinc_cost
 
 
@@ -28,8 +28,8 @@ def test_drinc_cost(verbose=False):
 
     # Worst case distribution and risk: move by 1 + sqrt(2)/sqrt(2) = 2
     xis_test = np.array([[1.0, 0.707], [1.0, 0.707]])
-    wc_risk = np.sum([xis_test[:, i].T @ _q @ xis_test[:, i]
-                      for i in range(_d)])
+    wc_risk = np.mean([xis_test[:, i].T @ _q @ xis_test[:, i]
+                       for i in range(_d)])
 
     # get the cost and optimize
     cost, cons = drinc_cost(support, radius)

@@ -1,6 +1,6 @@
 import numpy as np
 import cvxpy as cp
-from data_structures import Polytope
+from utils.data_structures import Polytope
 from cvar import cvar_constraints
 
 

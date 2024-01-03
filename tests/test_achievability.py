@@ -1,8 +1,8 @@
 import numpy as np
 import cvxpy as cp
 from achievability import achievability_constraints
-from simulate import split_clm
-from data_structures import LinearSystem
+from utils.simulate import split_clm
+from utils.data_structures import LinearSystem
 
 
 def test_achievability_constraints(verbose=False):

@@ -6,7 +6,7 @@ Copyright Jean-Sébastien Brouillon (2024)
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 import numpy as np
-from data_structures import LinearSystem
+from utils.data_structures import LinearSystem
 
 
 def achievability_constraints(sys: LinearSystem, t_fir: int):
