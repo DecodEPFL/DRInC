@@ -10,6 +10,7 @@ def test_achievability_constraints(verbose=False):
     tests the achievability constraints generation for a random closed loop map.
     :param verbose: bool, if True, prints the optimization verbose.
     """
+    # Not using generators for unit tests
     np.random.seed(123)
 
     # Parameters

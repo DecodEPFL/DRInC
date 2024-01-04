@@ -17,7 +17,7 @@ from drinc import synthesize_drinc
 
 def experiment():
     # Use a breakpoint in the code line below to debug your script.
-    _g = get_distribution("gaussian")
+    return
 
 
 # Press the green button in the gutter to run the script.
