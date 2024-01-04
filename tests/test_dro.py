@@ -14,7 +14,8 @@ def test_drinc_cost(verbose=False):
     # Parameters
     _d = 2
     _q = np.eye(_d)
-    radius = 2.0
+    radius = 0.25
+    sq2 = np.sqrt(2.0)
 
     # Unit box support set
     support = Polytope()
@@ -24,12 +25,13 @@ def test_drinc_cost(verbose=False):
 
     # Center distribution with two samples
     # One at zero and one at d=1 from border of support
-    xis_train = np.array([[1.0-0.707, 0], [1.0-0.707, 0]])
+    xis_train = np.array([[1.0-1/sq2/2, 0], [1.0-1/sq2/2, 0]])
 
-    # Worst case distribution and risk: move by 1 + sqrt(2)/sqrt(2) = 2
-    xis_test = np.array([[1.0, 0.707], [1.0, 0.707]])
+    # Worst case distribution and risk: each sample moves by
+    # sqrt(2)/sqrt(2)/2 = 0.5 so the Wasserstein distance is 0.5^2
+    xis_test = np.array([[1.0, 1/sq2/2], [1.0, 1/sq2/2]])
     wc_risk = np.mean([xis_test[:, i].T @ _q @ xis_test[:, i]
-                       for i in range(_d)])
+                       for i in range(xis_test.shape[1])])
 
     # get the cost and optimize
     cost, cons = drinc_cost(support, radius)

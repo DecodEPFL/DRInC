@@ -51,11 +51,7 @@ def drinc_cost(support: Polytope, radius: float):
         _psi = cp.Variable((_H.shape[0], _n))
 
         # Equality constraints
-        cons = [mean_si >= cp.sum(_s) / _n]
-
-        print((cp.sum(_s) / _n))
-        print(_s.shape)
-        print(mean_si)
+        cons = [mean_si == cp.sum(_s) / _n]
 
         # Inequality constraints
         cons += [_l >= 0, _mu >= 0, _psi >= -_mu, _a >= 0]
@@ -65,7 +61,7 @@ def drinc_cost(support: Polytope, radius: float):
             + cp.kron(np.diag([-1, 1]), 4 * q)
         for i, (xii, (mui, psii)) in enumerate(zip(xis.T, zip(_mu.T, _psi.T))):
             # Element [1,1]
-            _scalar = _s[[i]] - _h.T @ psii + _l * xii.T @ xii
+            _scalar = _s[[i]] - _h.T @ (psii + mui*2) + _l * xii.T @ xii
             # Elements [2:end, 1]
             _vec = cp.hstack([_l * xii * 2 + _H.T @ psii, _H.T @ mui])[:, None]
 
@@ -74,7 +70,6 @@ def drinc_cost(support: Polytope, radius: float):
 
             # Orthogonality constraint
             _h_mui = _H.T @ mui[:, None]
-            cons += [mui == 0]  # TODO: Remove this and get why mosek fucks up
             cons += [cp.bmat([[_a, _h_mui.T],
                               [_h_mui, np.eye(q.shape[0]) * _l - q*0]]) >> 0]
 

@@ -16,11 +16,16 @@ def test_simulate(verbose=False):
     x, u, y = simulate(np.kron(np.arange(6), np.ones((3, 1))), sys, xi)
 
     if verbose:
-        print(x, u, y)
+        print("states:")
+        print(x)
+        print("inputs:")
+        print(u)
+        print("outputs:")
+        print(y)
 
-    assert (x == np.vstack((np.zeros((4, 1)), 15*np.ones((8, 1))))).all()
-    assert (u == np.vstack((np.zeros((2, 1)), 15*np.ones((4, 1))))).all()
-    assert (y == np.vstack((np.zeros((2, 1)), 30*np.ones((4, 1))))).all()
+    assert np.all(x == np.vstack((np.zeros((4, 1)), 15*np.ones((8, 1)))))
+    assert np.all(u == np.vstack((np.zeros((2, 1)), 15*np.ones((4, 1)))))
+    assert np.all(y == np.vstack((np.zeros((2, 1)), 30*np.ones((4, 1)))))
 
     if verbose:
         print("All tests passed")
