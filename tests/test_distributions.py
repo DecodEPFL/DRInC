@@ -17,7 +17,7 @@ def test_distributions(verbose=False):
             d = get_distribution(n, [3] if n == 'step' else [0.1])
             ps[n] = np.vstack([d(_n), d(_n), d(_n)])
         else:
-            d = get_distribution(n, [])
+            d = get_distribution(n, [0.5] if n == 'bimodal_gaussian' else [])
             ds[n] = 10 * np.vstack([d(_n), d(_n), d(_n)]) + _n*3/2
 
     plt.figure()

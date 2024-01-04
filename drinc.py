@@ -19,9 +19,10 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
                      verbose=False):
     """
     This function generates the closure that defines the distributionally robust
-    control design problem from "Distributionally Robust Infinite-horizon Control"
-    (DRInC) by JS Brouillon et. al., 2023. The closure can be used afterward for
-    various different optimization problems over the SLS closed loop map phi.
+    control design problem from "Distributionally Robust Infinite-horizon
+    Control" (DRInC) by JS Brouillon et. al., 2023. The closure can be used
+    afterward for various different optimization problems over the SLS closed
+    loop map phi.
 
     :param sys: LinearSystem for which the constraints apply.
     :param t_fir: int > 0, length of the FIR SLS closed loop map filter.
@@ -32,9 +33,9 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     :param verbose: bool, if True, prints the optimization verbose.
     :return: closure with signature (xis, weights) -> phi, where phi is the SLS
         closed loop map, xis are the samples of the empirical distribution at
-         the center of the Wasserstein ball (one column per sample), and weights
-         is the matrix square root of the weights W of the control cost
-         [x_t, u_t]^T W [x_t, u_t].
+        the center of the Wasserstein ball (one column per sample), and weights
+        is the matrix square root of the weights W of the control cost
+        [x_t, u_t]^T W [x_t, u_t].
     """
 
     # No argument checks, they are performed in daughter functions

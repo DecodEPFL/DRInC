@@ -44,7 +44,8 @@ def get_distribution(name: str, param=None):
     if not isinstance(name, str):
         raise ValueError("The name must be a string.")
 
-    # Check that param is a list
+    # Check that param is a list or None
+    param = [] if param is None else param
     if not isinstance(param, list):
         raise ValueError("The parameters must be a list.")
 
