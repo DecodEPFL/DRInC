@@ -12,11 +12,12 @@ from utils.data_structures import Polytope, LinearSystem
 from achievability import achievability_constraints
 from cvar import cvar_constraints
 from dro import drinc_cost
+import mosek
 
 
 def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
                      support: Polytope, radius: float, p_level: float,
-                     verbose=False):
+                     radius_constraints: float = None, verbose=False):
     """
     This function generates the closure that defines the distributionally robust
     control design problem from "Distributionally Robust Infinite-horizon
@@ -30,6 +31,8 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     :param support: Polytope, the support of the noise distribution.
     :param radius: Radius of the Wasserstein ball
     :param p_level: Probability level of the cvar constraints
+    :param radius_constraints: Radius of the Wasserstein ball for the
+        constraints, if None, the same radius as for the cost is used.
     :param verbose: bool, if True, prints the optimization verbose.
     :return: closure with signature (xis, weights) -> phi, where phi is the SLS
         closed loop map, xis are the samples of the empirical distribution at
@@ -39,6 +42,8 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     """
 
     # No argument checks, they are performed in daughter functions
+    if radius_constraints is None:
+        radius_constraints = radius
 
     # Short notations
     _t = t_fir
@@ -48,19 +53,22 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
 
     # Get achievability, cvar and cost closures
     mkach = achievability_constraints(sys, t_fir)
-    mkcvar = cvar_constraints(feasible_set, support, radius, p_level)
+    mkcvar = cvar_constraints(feasible_set, support,
+                              radius_constraints, p_level)
     mkcost, mkcons = drinc_cost(support, radius)
 
     def mkdrinc(xis, weights=None):
+        # Variables
+        weights = np.eye(_n + _m) if weights is None else weights
         phi = cp.Variable((_n + _m, (_n + _p) * _t))
         q = cp.Variable(((_n + _p) * _t, (_n + _p) * _t))
 
         # Generate the constraints
-        cons = [mkach(phi), mkcvar(phi, xis), mkcons(phi, xis)]
+        cons = mkach(phi) + mkcons(q, xis) + mkcvar(phi, xis)
 
         # Add the link between Q and phi
         cons += [cp.bmat([[q, (weights @ phi).T],
-                          [weights @ phi, np.eye(_n + _m)]]) >> 0],
+                          [weights @ phi, np.eye(_n + _m)]]) >> 0]
 
         # Solve the optimization problem
         cp.Problem(cp.Minimize(mkcost(q, xis)), cons).solve(verbose=verbose)

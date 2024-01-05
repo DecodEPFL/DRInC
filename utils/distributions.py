@@ -11,6 +11,15 @@ implemented = ['gaussian', 'uniform', 'truncated_gaussian', 'bimodal_gaussian',
                'constant', 'sine', 'sawtooth', 'triangle', 'step']
 
 
+def get_random_int(n: int):
+    """
+    generate a random integer from 0 to n-1
+    :param n: int, upper bound
+    :return: int, random integer
+    """
+    return rng.integers(n-1)
+
+
 def get_distribution(name: str, param=None):
     """
     Provides samples from a distribution or profile with a given name.
@@ -29,8 +38,8 @@ def get_distribution(name: str, param=None):
             phase param[1] (default=0), and unit sampling frequency
         - 'triangle': Triangle profile with frequency param[0] (default=1),
             phase param[1] (default=0), and unit sampling frequency
-        - 'step': Step profile with phase param[0] (default=1), the phase is
-            the number of zero values before the step. If param[0] == 0, 'step'
+        - 'step': Step profile with phase param[1] (default=0), the phase is
+            the number of zero values before the step. If param[1] == 0, 'step'
             is equivalent to 'constant'
     :param param: list, parameters of the distribution or profile. This must be
         a list even if there is zero or only one parameter. This argument is
@@ -51,7 +60,7 @@ def get_distribution(name: str, param=None):
 
     # Fill in default parameters
     if len(param) < 2:
-        param = [1.0, 0.0] if len(param) == 0 else [param[0], 0.0]
+        param[:] = [1.0, 0.0] if len(param) == 0 else [param[0], 0.0]
 
     if name.lower() == "gaussian":
         def distribution(n):
@@ -92,8 +101,8 @@ def get_distribution(name: str, param=None):
                                  % 4 - (2 - np.finfo(float).eps))[:, None]
     elif name.lower() == "step":
         def distribution(n):
-            return np.vstack([np.zeros((int(param[0]), 1)),
-                              np.ones((n-int(param[0]), 1))])
+            return np.vstack([np.zeros((int(param[1]), 1)),
+                              np.ones((n-int(param[1]), 1))])
     else:
         raise NotImplementedError(f"Distribution with name {name} "
                                   f"is not in our library.")

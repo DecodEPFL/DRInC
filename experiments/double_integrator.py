@@ -10,7 +10,7 @@ import numpy as np
 from drinc import synthesize_drinc
 from robust import synthesize_robust
 from utils.data_structures import LinearSystem, Polytope
-from utils.distributions import get_distribution, implemented
+from utils.distributions import get_distribution, get_random_int, implemented
 from utils.simulate import simulate
 
 
@@ -23,15 +23,16 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     :param radius: Radius of the Wasserstein ball
     :param verbose: bool, if True, prints the optimization verbose.
     :return: LinearSystem, Polytope, Polytope, dict, dict. The first three are
+        the parameters t_fir, radius, and p_level. The next three are
         the system, the support and the feasible set. The last two are the
         training and testing samples, in the form of a dictionary with the
         distribution names for keys.
     """
     # Parameters
     _n, _m, _p = 2, 1, 1
-    t_fir, noise = 4, 0.2
-    fradius, p_level = 10.0, 5e-2
-    _ntrain, _ntest = 10, 100
+    t_fir, t_test = 4, 40
+    fradius, noise, sup_r, p_level = 100*200.0, 0.2, 10, 5e-2
+    _ntrain, _ntest = 3, 100# 10, 100
 
     # System definition
     sys = LinearSystem()
@@ -42,19 +43,41 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     support = Polytope()
     support.h = np.vstack((np.eye((_n + _p) * t_fir),
                            -np.eye((_n + _p) * t_fir)))
-    support.g = np.random.uniform(0, noise, (2 * (_n + _p) * t_fir, 1))
+    support.g = np.random.uniform(0, noise*sup_r, (2 * (_n + _p) * t_fir, 1))
 
     # Feasible set definition
     fset = Polytope()
     fset.h = np.vstack((np.eye(_n + _m),
                         -np.eye(_n + _m)))
-    fset.g = np.random.uniform(t_fir*noise, fradius, (2 * (_n + _m), 1))
+    fset.g = np.random.uniform(t_fir*noise*sup_r, fradius, (2 * (_n + _m), 1))
+
+    # Define the distributions to experiment with
+    ds = dict()
+    for n in implemented:
+        if n in ['constant', 'sine', 'sawtooth', 'triangle', 'step']:
+            p = [0.1] if n != 'step' else [0, 5]
+            ds[n] = (get_distribution(n, p), p)
+        else:
+            p = [0.4] if n == 'bimodal_gaussian' else []
+            ds[n] = (get_distribution(n, p), p)
 
     # Generate training and testing samples
     xis_train, xis_test = dict(), dict()
-    for n in implemented:
-        pass
+    for n, (d, p) in ds.items():
+        xi = []
+        for i in range(_ntrain):
+            p[1] = get_random_int((_n + _p) * t_fir)
+            xi.append(d((_n + _p) * t_fir))
+        xi = np.hstack(xi)
+        xis_train[n] = xi * noise
 
-    return sys, support, fset, xis_train, xis_test
+        xi = []
+        for i in range(_ntest):
+            p[1] = get_random_int((_n + _p) * t_test)
+            xi.append(d((_n + _p) * t_test))
+        xi = np.hstack(xi)
+        xis_test[n] = xi * noise
+
+    return t_fir, radius, p_level, sys, fset, support, xis_train, xis_test
 
 

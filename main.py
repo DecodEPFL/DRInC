@@ -8,18 +8,49 @@ Copyright Jean-Sébastien Brouillon (2024)
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 import numpy as np
-import cvxpy as cp
-from utils.distributions import get_distribution
-from utils.data_structures import LinearSystem, Polytope
+# import cvxpy as cp
+# from utils.distributions import get_distribution
+# from utils.data_structures import LinearSystem, Polytope
 from utils.simulate import simulate
-from drinc import synthesize_drinc
+from experiments.setup_controllers import get_controllers, controller_names
+from experiments.double_integrator import double_integrator_experiment
 
 
-def experiment():
-    # Use a breakpoint in the code line below to debug your script.
+def run():
+    experiment = double_integrator_experiment
+    # Get experiment parameters
+    params = list(experiment())
+    [xis_train, xis_test] = params[-2:]
+    [t_fir, radius, p_level, sys, fset, support] = params[:-2]
+
+    # Get controllers
+    controllers = list(get_controllers(*params[:-2], True))
+    controllers = [controllers[0], controllers[1]]
+    controller_names = ["drinc", "emp"]
+
+    # Simulate all distributions
+    for d, xis in xis_test.items():
+        # Simulate the closed loop maps
+        x, u, y = dict(), dict(), dict()
+        for n, phi in zip(controller_names,
+                          [c(xis_train[d]) for c in controllers]):
+            # Simulate the closed loop map
+            x[n], u[n], y[n] = simulate(phi, sys, xis)
+
+            # Compute the cost
+            cost = np.mean(np.sum(np.multiply(x[n], x[n]), axis=0)
+                           + np.sum(np.multiply(u[n], u[n]), axis=0))
+
+            # Print the cost
+            print(f"Cost of {n}: ", cost)
+
+            # Plot the results
+
+    # Plot the results
+
     return
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    experiment()
+    run()

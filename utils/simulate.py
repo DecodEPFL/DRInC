@@ -42,7 +42,8 @@ def simulate(phi: np.ndarray, sys: LinearSystem,
         column is a sample.
     :param x0: initial states for t_fir time steps. If None, the origin is used.
     :return: x, u, y, the state, input, and output trajectories of
-        the closed loop system.
+        the closed loop system. Each column is a trajectory corresponding to
+        one sample.
     """
 
     # Short notations

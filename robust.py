@@ -63,6 +63,7 @@ def synthesize_robust(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
              mu >= 0]
 
     def mkrob(xis, weights=None):
+        weights = np.eye(_n + _m) if weights is None else weights
         cost = cp.sum([xi.T @ phi.T @ weights @ phi @ xi
                        for xi in xis.T]) / xis.shape[1]
 
