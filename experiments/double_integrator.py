@@ -28,11 +28,19 @@ def double_integrator_experiment(radius=0.1, verbose=False):
         training and testing samples, in the form of a dictionary with the
         distribution names for keys.
     """
-    # Parameters
+    # Useful to generate random Polytopes
+    uni = get_distribution("uniform")
+
+    # System dimensions
     _n, _m, _p = 2, 1, 1
+    # Time horizons
     t_fir, t_test = 4, 40
-    fradius, noise, sup_r, p_level = 100*200.0, 0.2, 10, 5e-2
-    _ntrain, _ntest = 3, 100# 10, 100
+    # Feasible set size and cvar probability level
+    fradius, p_level = 100*200.0, 5e-2
+    # Noise level and support size
+    noise, sup_r = 0.2, 4
+    # Number of samples
+    _ntrain, _ntest = 3, 100  # 10, 100
 
     # System definition
     sys = LinearSystem()
@@ -43,13 +51,12 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     support = Polytope()
     support.h = np.vstack((np.eye((_n + _p) * t_fir),
                            -np.eye((_n + _p) * t_fir)))
-    support.g = np.random.uniform(0, noise*sup_r, (2 * (_n + _p) * t_fir, 1))
+    support.g = sup_r * uni(2 * (_n + _p) * t_fir)
 
     # Feasible set definition
     fset = Polytope()
-    fset.h = np.vstack((np.eye(_n + _m),
-                        -np.eye(_n + _m)))
-    fset.g = np.random.uniform(t_fir*noise*sup_r, fradius, (2 * (_n + _m), 1))
+    fset.h = np.vstack((np.eye(_n + _m), -np.eye(_n + _m)))
+    fset.g = (fradius - t_fir*sup_r) * uni(2 * (_n + _p) * t_fir) + t_fir*sup_r
 
     # Define the distributions to experiment with
     ds = dict()

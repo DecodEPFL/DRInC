@@ -24,9 +24,9 @@ def run():
     [t_fir, radius, p_level, sys, fset, support] = params[:-2]
 
     # Get controllers
-    controllers = list(get_controllers(*params[:-2], True))
-    controllers = [controllers[0], controllers[1]]
-    controller_names = ["drinc", "emp"]
+    controllers = list(get_controllers(*params[:-2], verbose=False))
+    controllers = controllers[0:3]
+    controller_names = ["drinc", "emp", "rob"]
 
     # Simulate all distributions
     for d, xis in xis_test.items():
