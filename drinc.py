@@ -68,10 +68,12 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
 
         # Add the link between Q and phi
         cons += [cp.bmat([[q, (weights @ phi).T],
-                          [weights @ phi, np.eye(_n + _m)]]) >> 0]
+                          [weights @ phi, np.eye(_n + _m)]]) >> 0]  # ,
+        #         q == q.T]
 
         # Solve the optimization problem
-        cp.Problem(cp.Minimize(mkcost(q, xis)), cons).solve(verbose=verbose)
+        cp.Problem(cp.Minimize(mkcost(q, xis)),
+                   cons).solve(verbose=verbose)
 
         return phi.value
 

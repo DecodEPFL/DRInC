@@ -71,7 +71,7 @@ def drinc_cost(support: Polytope, radius: float):
             # Orthogonality constraint
             _h_mui = _H.T @ mui[:, None]
             cons += [cp.bmat([[_a, _h_mui.T],
-                              [_h_mui, np.eye(q.shape[0]) * _l - q*0]]) >> 0]
+                              [_h_mui, np.eye(q.shape[0]) * _l - q]]) >> 0]
 
         return cons
 

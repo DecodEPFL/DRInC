@@ -24,7 +24,7 @@ def run():
     [t_fir, radius, p_level, sys, fset, support] = params[:-2]
 
     # Get controllers
-    controllers = list(get_controllers(*params[:-2], verbose=False))
+    controllers = list(get_controllers(*params[:-2], verbose=True))
     controllers = controllers[0:3]
     controller_names = ["drinc", "emp", "rob"]
 
