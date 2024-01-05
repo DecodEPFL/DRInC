@@ -17,7 +17,8 @@ import mosek
 
 def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
                      support: Polytope, radius: float, p_level: float,
-                     radius_constraints: float = None, verbose=False):
+                     radius_constraints: float = None, regular: float = None,
+                     verbose=False):
     """
     This function generates the closure that defines the distributionally robust
     control design problem from "Distributionally Robust Infinite-horizon
@@ -33,6 +34,8 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     :param p_level: Probability level of the cvar constraints
     :param radius_constraints: Radius of the Wasserstein ball for the
         constraints, if None, the same radius as for the cost is used.
+    :param regular: float > 0, regularization parameter for the optimization
+        (multiplies tr(Q)).
     :param verbose: bool, if True, prints the optimization verbose.
     :return: closure with signature (xis, weights) -> phi, where phi is the SLS
         closed loop map, xis are the samples of the empirical distribution at
@@ -42,6 +45,7 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     """
 
     # No argument checks, they are performed in daughter functions
+    regular = 1e-2 if regular is None else regular
     if radius_constraints is None:
         radius_constraints = radius
 
@@ -68,11 +72,11 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
 
         # Add the link between Q and phi
         cons += [cp.bmat([[q, (weights @ phi).T],
-                          [weights @ phi, np.eye(_n + _m)]]) >> 0]  # ,
-        #         q == q.T]
+                          [weights @ phi, np.eye(_n + _m)]]) >> 0,
+                 q == q.T]
 
         # Solve the optimization problem
-        cp.Problem(cp.Minimize(mkcost(q, xis)),
+        cp.Problem(cp.Minimize(mkcost(q, xis) + regular*cp.trace(q)),
                    cons).solve(verbose=verbose)
 
         return phi.value

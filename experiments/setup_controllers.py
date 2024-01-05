@@ -40,14 +40,16 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
 
     # Obtain drinc closure
     drinc = synthesize_drinc(sys, t_fir, fset, support,
-                             radius, p_level, None, verbose)
+                             radius, p_level, None, None, verbose)
 
     # Obtain empirical closure, just drinc with very small Wasserstein ball
-    emp = synthesize_drinc(sys, t_fir, fset, support, r_z, p_z, None, verbose)
+    emp = synthesize_drinc(sys, t_fir, fset, support,
+                           r_z, p_z, None, None, verbose)
 
     # Obtain robust closure
     # rob = synthesize_robust(sys, t_fir, fset, support, verbose)
-    rob = synthesize_drinc(sys, t_fir, fset, support, r_z, p_z, 1e3, verbose)
+    rob = synthesize_drinc(sys, t_fir, fset, support,
+                           r_z, p_z, 1e3, None, verbose)
 
     # Gaussian distribution is an alternative center for the Wasserstein ball
     # We approximate it with an empirical distribution with Gaussian samples
