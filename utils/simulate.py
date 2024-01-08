@@ -75,7 +75,7 @@ def simulate(phi: np.ndarray, sys: LinearSystem,
 
     # Initial state
     if x0 is None:
-        x0 = np.zeros((phi.shape[1]-_n, 1))
+        x0 = np.zeros((int(phi.shape[1]*_n / (_n+_p)), 1))
     else:
         if x0.shape[0] != int(phi.shape[1]*_n / (_n+_p)):
             raise ValueError(f"The initial state is not compatible"
@@ -85,7 +85,7 @@ def simulate(phi: np.ndarray, sys: LinearSystem,
                              f"Got {x0.shape[0]} instead of "
                              f"{phi.shape[1]*_n / (_n+_p)}.")
         if len(x0.shape) == 1:
-            xu0 = x0[:, None]
+            x0 = x0[:, None]
         if x0.shape[1] != 1:
             raise ValueError(f"Only one initial state and input trajectory"
                              f"can be provided, got {x0.shape[1]} instead.")

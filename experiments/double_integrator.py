@@ -33,11 +33,12 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     # Time horizons, problem ill conditionned if t_fir < 5
     t_fir, t_test = 5, 40
     # Feasible set size and cvar probability level
-    fradius, p_level = 0.1*200.0, 5e-2
-    # Noise level and support size
+    fradius, p_level = 200.0, 5e-2
+    # Noise level and empirically tuned support size
+    # (by checking for samples out of support)
     noise, sup_r = 0.2, 4
     # Number of samples
-    _ntrain, _ntest = 3, 100  # 10, 100
+    _ntrain, _ntest = 5, 100
 
     # System definition
     sys = LinearSystem()
@@ -82,6 +83,7 @@ def double_integrator_experiment(radius=0.1, verbose=False):
         xi = np.hstack(xi)
         xis_test[n] = xi * noise
 
-    return t_fir, radius, p_level, sys, fset, support, xis_train, xis_test
+    return t_test, t_fir, radius, p_level, sys, \
+        fset, support, xis_train, xis_test
 
 
