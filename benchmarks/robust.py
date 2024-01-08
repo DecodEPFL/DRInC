@@ -30,7 +30,7 @@ def synthesize_robust(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
 
     This gives the following equivalent optimization problem:
         min_{phi} E_{xi~P_empirical} (xi^T Phi^T W Phi xi)
-        s.t. mu h ≤ g, G Phi = mu H, mu ≥ 0, for all j
+        s.t. mu h ≤ g, G Phi = mu H, mu ≥ 0
 
     :param sys: LinearSystem for which the constraints apply.
     :param t_fir: int > 0, length of the FIR SLS closed loop map filter.
@@ -64,11 +64,17 @@ def synthesize_robust(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
 
     def mkrob(xis, weights=None):
         weights = np.eye(_n + _m) if weights is None else weights
-        cost = cp.sum([xi.T @ phi.T @ weights @ phi @ xi
-                       for xi in xis.T]) / xis.shape[1]
+
+        # CVX is annoying and needs some slack variables for DCP check
+        phi_xi = cp.Variable((_n + _m, xis.shape[1]))
+        c_xi = [phi_xi == phi @ xis]
+
+        # Quadratic cost function
+        cost = cp.sum([pxi.T @ weights @ pxi
+                       for pxi in phi_xi.T]) / xis.shape[1]
 
         # Solve the optimization problem
-        cp.Problem(cp.Minimize(cost), cons).solve(verbose=verbose)
+        cp.Problem(cp.Minimize(cost), cons + c_xi).solve(verbose=verbose)
 
         return phi.value
 

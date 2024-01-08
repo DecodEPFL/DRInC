@@ -8,9 +8,6 @@ def test_simulate(verbose=False):
     tests the achievability constraints generation for a random closed loop map.
     :param verbose: bool, if True, prints the optimization verbose.
     """
-    # Not using generators for unit tests
-    np.random.seed(123)
-
     sys = LinearSystem()
     sys.a, sys.b, sys.c = np.eye(2), np.array([[1], [0]]), np.array([[2, 0]])
     xi = np.ones((6*3, 1))
@@ -34,4 +31,7 @@ def test_simulate(verbose=False):
 
 # Press the green button in the gutter to run the test.
 if __name__ == '__main__':
+    # Not using generators for unit tests
+    np.random.seed(123)
+
     test_simulate(True)

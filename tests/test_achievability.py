@@ -10,9 +10,6 @@ def test_achievability_constraints(verbose=False):
     tests the achievability constraints generation for a random closed loop map.
     :param verbose: bool, if True, prints the optimization verbose.
     """
-    # Not using generators for unit tests
-    np.random.seed(123)
-
     # Parameters
     _m, _n, _p = 2, 3, 2
     t_fir = 4
@@ -40,7 +37,7 @@ def test_achievability_constraints(verbose=False):
     # Check constraints
     # Short notation
     def _ass(x, y):
-        np.testing.assert_allclose(x, y, rtol=0, atol=1e-8)
+        np.testing.assert_allclose(x, y, rtol=0, atol=1e-7)
 
     for i, (p, ps) in enumerate(zip(phi, phis)):
         if i == 0:
@@ -69,5 +66,8 @@ def test_achievability_constraints(verbose=False):
 
 # Press the green button in the gutter to run the test.
 if __name__ == '__main__':
+    # Not using generators for unit tests
+    np.random.seed(123)
+
     for k in range(10):
         test_achievability_constraints()

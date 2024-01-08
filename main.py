@@ -24,9 +24,9 @@ def run():
     [t_fir, radius, p_level, sys, fset, support] = params[:-2]
 
     # Get controllers
-    controllers = list(get_controllers(*params[:-2], verbose=True))
+    controllers = list(get_controllers(*params[:-2], verbose=False))
     controllers = controllers[0:3]
-    controller_names = ["drinc", "emp", "rob"]
+    controller_names = ["drinc", "rob", "emp"]
 
     # Simulate all distributions
     for d, xis in xis_test.items():
@@ -42,7 +42,7 @@ def run():
                            + np.sum(np.multiply(u[n], u[n]), axis=0))
 
             # Print the cost
-            print(f"Cost of {n}: ", cost)
+            print(f"Cost of {n} for {d} distribution: ", cost)
 
             # Plot the results
 

@@ -7,11 +7,8 @@ Copyright Jean-Sébastien Brouillon (2024)
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 import numpy as np
-from drinc import synthesize_drinc
-from robust import synthesize_robust
 from utils.data_structures import LinearSystem, Polytope
 from utils.distributions import get_distribution, get_random_int, implemented
-from utils.simulate import simulate
 
 
 def double_integrator_experiment(radius=0.1, verbose=False):
@@ -33,10 +30,10 @@ def double_integrator_experiment(radius=0.1, verbose=False):
 
     # System dimensions
     _n, _m, _p = 2, 1, 1
-    # Time horizons
-    t_fir, t_test = 4, 40
+    # Time horizons, problem ill conditionned if t_fir < 5
+    t_fir, t_test = 5, 40
     # Feasible set size and cvar probability level
-    fradius, p_level = 100*200.0, 5e-2
+    fradius, p_level = 0.1*200.0, 5e-2
     # Noise level and support size
     noise, sup_r = 0.2, 4
     # Number of samples
@@ -56,7 +53,7 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     # Feasible set definition
     fset = Polytope()
     fset.h = np.vstack((np.eye(_n + _m), -np.eye(_n + _m)))
-    fset.g = (fradius - t_fir*sup_r) * uni(2 * (_n + _p) * t_fir) + t_fir*sup_r
+    fset.g = (fradius - t_fir*sup_r) * uni(2 * (_n + _m)) + t_fir*sup_r
 
     # Define the distributions to experiment with
     ds = dict()

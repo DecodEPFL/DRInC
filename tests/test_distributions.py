@@ -38,6 +38,7 @@ def test_distributions(verbose=False):
 
 # Press the green button in the gutter to run the test.
 if __name__ == '__main__':
+    # Seed is set by distribution generator
     test_distributions(True)
 
 

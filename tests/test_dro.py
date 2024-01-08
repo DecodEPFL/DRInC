@@ -9,9 +9,6 @@ def test_drinc_cost(verbose=False):
     tests the drinc cost generation for a random closed loop map.
     :param verbose: bool, if True, prints the optimization verbose.
     """
-    # Not using generators for unit tests
-    np.random.seed(123)
-
     # Parameters
     _d = 2
     _q = np.eye(_d)
@@ -53,6 +50,7 @@ def test_drinc_cost(verbose=False):
 
 # Press the green button in the gutter to run the test.
 if __name__ == '__main__':
-    np.set_printoptions(linewidth=120, precision=2)
-    # for k in range(10):
+    # Not using generators for unit tests
+    np.random.seed(123)
+
     test_drinc_cost(True)

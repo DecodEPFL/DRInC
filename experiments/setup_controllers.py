@@ -8,12 +8,13 @@ Copyright Jean-Sébastien Brouillon (2024)
 
 import numpy as np
 from drinc import synthesize_drinc
-from robust import synthesize_robust
+from benchmarks.robust import synthesize_robust
+from benchmarks.empirical import synthesize_empirical
 from utils.data_structures import LinearSystem, Polytope
 from utils.distributions import get_distribution
-from utils.simulate import simulate
 
-controller_names = ["DRInC", "Empirical", "Robust", "LQG", "DR-LQG"]
+# List of controller names, useful to iterate over all controllers
+controller_names = ["DRInC", "Robust", "Empirical", "LQG", "DR-LQG"]
 
 
 def get_controllers(t_fir: int, radius: float, p_level: float,
@@ -34,22 +35,17 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
     :param fset: Polytope, the feasible set of the optimization problem.
     :param support: Polytope, the support of the noise distribution.
     :param verbose: bool, if True, prints the optimization verbose.
+    :return: list of closures for each controller in controller_names.
     """
-    # Almost zero radius and p_levels
-    r_z, p_z = radius/100.0, p_level/100.0
-
     # Obtain drinc closure
     drinc = synthesize_drinc(sys, t_fir, fset, support,
                              radius, p_level, None, None, verbose)
 
     # Obtain empirical closure, just drinc with very small Wasserstein ball
-    emp = synthesize_drinc(sys, t_fir, fset, support,
-                           r_z, p_z, None, None, verbose)
+    emp = synthesize_empirical(sys, t_fir, fset, verbose)
 
     # Obtain robust closure
-    # rob = synthesize_robust(sys, t_fir, fset, support, verbose)
-    rob = synthesize_drinc(sys, t_fir, fset, support,
-                           r_z, p_z, 1e3, None, verbose)
+    rob = synthesize_robust(sys, t_fir, fset, support, verbose)
 
     # Gaussian distribution is an alternative center for the Wasserstein ball
     # We approximate it with an empirical distribution with Gaussian samples
@@ -66,6 +62,6 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
         rn = np.hstack([gauss(xis.shape[0]) for i in range(xis.shape[1])])
         return drinc(np.std(xis.flatten()) * rn, weights)
 
-    return drinc, emp, rob, lqg, drlqg
+    return drinc, rob, emp, lqg, drlqg
 
 

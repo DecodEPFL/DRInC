@@ -45,7 +45,7 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     """
 
     # No argument checks, they are performed in daughter functions
-    regular = 1e-2 if regular is None else regular
+    regular = 2e-2 if regular is None else regular
     if radius_constraints is None:
         radius_constraints = radius
 
@@ -75,9 +75,13 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
                           [weights @ phi, np.eye(_n + _m)]]) >> 0,
                  q == q.T]
 
+        # Set a bit higher tolerance for the solver (default is 1e3)
+        mskp = {'MSK_DPAR_INTPNT_CO_TOL_NEAR_REL': 1e5}
+
         # Solve the optimization problem
-        cp.Problem(cp.Minimize(mkcost(q, xis) + regular*cp.trace(q)),
-                   cons).solve(verbose=verbose)
+        cp.Problem(cp.Minimize(mkcost(q, xis)*1 + regular*cp.trace(q)),
+                   cons).solve(solver=cp.MOSEK, verbose=verbose,
+                               mosek_params=mskp)
 
         return phi.value
 
