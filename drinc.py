@@ -68,7 +68,7 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
         q = cp.Variable(((_n + _p) * _t, (_n + _p) * _t))
 
         # Generate the constraints
-        cons = mkach(phi) + mkcons(q, xis) + mkcvar(phi, xis)
+        cons = mkach(phi) + mkcvar(phi, xis)# + mkcons(q, xis) + mkcvar(phi, xis)
 
         # Add the link between Q and phi
         cons += [cp.bmat([[q, (weights @ phi).T],
@@ -76,10 +76,11 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
                  q == q.T]
 
         # Set a bit higher tolerance for the solver (default is 1e3)
-        mskp = {'MSK_DPAR_INTPNT_CO_TOL_NEAR_REL': 1e5}
+        mskp = {'MSK_DPAR_INTPNT_CO_TOL_NEAR_REL': 1e6}
+        #        'MSK_DPAR_INTPNT_CO_TOL_INFEAS': 1e0}
 
         # Solve the optimization problem
-        cp.Problem(cp.Minimize(mkcost(q, xis)*1 + regular*cp.trace(q)),
+        cp.Problem(cp.Minimize(mkcost(q, xis)*0 + regular*cp.trace(q)),
                    cons).solve(solver=cp.MOSEK, verbose=verbose,
                                mosek_params=mskp)
 

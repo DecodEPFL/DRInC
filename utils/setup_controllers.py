@@ -50,17 +50,28 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
     # Gaussian distribution is an alternative center for the Wasserstein ball
     # We approximate it with an empirical distribution with Gaussian samples
     gauss = get_distribution("gaussian")
+    # Make infinite feasible set to cancel the constraints
+    inf_fset = Polytope()
+    inf_fset.h, inf_fset.g = 0*fset.h, 0*fset.g
+
+    # Obtain lqg closure, with infinite feasible set
+    lqg_non_gauss = synthesize_empirical(sys, t_fir, inf_fset, verbose)
 
     # Make lqg closure, the gaussian has the same variance as the samples
     def lqg(xis, weights=None):
-        rn = np.hstack([gauss(xis.shape[0]) for i in range(xis.shape[1])])
-        return emp(np.std(xis.flatten()) * rn, weights)
+        rn = np.hstack([gauss(xis.shape[0]) for i in range(xis.shape[1]*10)])
+        return lqg_non_gauss(np.std(xis.flatten()) * rn, weights)
+
+    # Obtain dqrlg closure, with infinite feasible set
+    drlqg_non_gauss = lqg_non_gauss
+    #drlqg_non_gauss = synthesize_drinc(sys, t_fir, inf_fset, support,
+    #                         radius, p_level, None, None, verbose)
 
     # Make DR-LQG closure, the gaussian has the same variance as the samples
     # This is an approximation as the center is empirical, not exactly Gaussian
     def drlqg(xis, weights=None):
         rn = np.hstack([gauss(xis.shape[0]) for i in range(xis.shape[1])])
-        return drinc(np.std(xis.flatten()) * rn, weights)
+        return drlqg_non_gauss(np.std(xis.flatten()) * rn, weights)
 
     return drinc, rob, emp, lqg, drlqg
 

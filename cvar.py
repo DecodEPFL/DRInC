@@ -67,7 +67,7 @@ def cvar_constraints(feasible_set: Polytope, support: Polytope,
                 _s = zeta[i] + (_gj @ phi @ xii + _g[j])/_y \
                     - (_H @ xii[:, None] + _h).T @ k_i[j, :]
 
-                _od = phi.T @ _gj[:, None] / _y - _H.T @ k_i[[j], :].T
+                _od = phi.T @ _gj[:, None] - _H.T @ k_i[[j], :].T * _y
 
                 _m = cp.bmat([[_s[:, None], _od.T],
                               [_od, 4*rho*_y*_y*np.eye(phi.shape[1])]])

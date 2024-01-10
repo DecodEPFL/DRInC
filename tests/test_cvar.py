@@ -7,6 +7,9 @@ from cvar import cvar_constraints
 def test_cvar_constraints(verbose=False):
     """
     tests the cvar constraints generation for a random closed loop map.
+    There are no achievability constraints, so the closed loop map phi is
+    not very meaningful.
+
     :param verbose: bool, if True, prints the optimization verbose.
     """
     # Parameters
@@ -44,7 +47,7 @@ def test_cvar_constraints(verbose=False):
 
     # Try to be random but still satisfy constraints
     cp.Problem(cp.Minimize(cp.norm(phi - phi_tar, 'fro')),
-               mkcons(phi, train_xis)).solve(verbose=verbose)
+               mkcons(phi, train_xis) + [phi[0, 0] >= 1]).solve(verbose=verbose)
     phi = phi.value
 
     # Compute expected amount of constraint violations
@@ -68,4 +71,4 @@ def test_cvar_constraints(verbose=False):
 if __name__ == '__main__':
     # Not using generators for unit tests
     np.random.seed(123)
-    test_cvar_constraints(True)
+    test_cvar_constraints(False)

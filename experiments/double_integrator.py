@@ -29,16 +29,16 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     uni = get_distribution("uniform")
 
     # System dimensions
-    _n, _m, _p = 2, 1, 1
+    _m, _n, _p = 1, 2, 1
     # Time horizons, problem ill conditionned if t_fir < 5
-    t_fir, t_test = 5, 40
-    # Feasible set size and cvar probability level
-    fradius, p_level = 200.0, 5e-2
+    t_fir, t_test = 7, 40
+    # Feasible set 'extra' size and cvar probability level
+    feas_margin, p_level = 2.0, 5e-2
     # Noise level and empirically tuned support size
     # (by checking for samples out of support)
-    noise, sup_r = 0.2, 4
+    noise, sup_r = 0.4, 4
     # Number of samples
-    _ntrain, _ntest = 5, 100
+    _ntrain, _ntest = 5, 5  # 100
 
     # System definition
     sys = LinearSystem()
@@ -54,7 +54,7 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     # Feasible set definition
     fset = Polytope()
     fset.h = np.vstack((np.eye(_n + _m), -np.eye(_n + _m)))
-    fset.g = (fradius - t_fir*sup_r) * uni(2 * (_n + _m)) + t_fir*sup_r
+    fset.g = (feas_margin - t_fir*sup_r) * uni(2 * (_n + _m)) + t_fir*sup_r
 
     # Define the distributions to experiment with
     ds = dict()
@@ -68,20 +68,14 @@ def double_integrator_experiment(radius=0.1, verbose=False):
 
     # Generate training and testing samples
     xis_train, xis_test = dict(), dict()
-    for n, (d, p) in ds.items():
-        xi = []
-        for i in range(_ntrain):
-            p[1] = get_random_int((_n + _p) * t_fir)
-            xi.append(d((_n + _p) * t_fir))
-        xi = np.hstack(xi)
-        xis_train[n] = xi * noise
-
-        xi = []
-        for i in range(_ntest):
-            p[1] = get_random_int((_n + _p) * t_test)
-            xi.append(d((_n + _p) * t_test))
-        xi = np.hstack(xi)
-        xis_test[n] = xi * noise
+    for _xis, _t in zip([xis_train, xis_test], [t_fir, t_test]):
+        for n, (d, p) in ds.items():
+            xi = []
+            for i in range(_ntrain):
+                p[1] = get_random_int((_n + _p) * _t)
+                xi.append(d((_n + _p) * _t))
+            xi = np.hstack(xi)
+            _xis[n] = xi * noise
 
     return t_test, t_fir, radius, p_level, sys, \
         fset, support, xis_train, xis_test

@@ -48,17 +48,12 @@ def synthesize_empirical(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     def mkemp(xis, weights=None):
         weights = np.eye(_n + _m) if weights is None else weights
 
-        # CVX is annoying and needs some slack variables for DCP check
-        phi_xi = cp.Variable((_n + _m, xis.shape[1]))
-        c_xi = [phi_xi == phi @ xis]
-
         # Add constraints for each sample
-        c_xi += [feasible_set.h @ pxi[:, None] <= feasible_set.g
-                 for pxi in phi_xi.T]
+        c_xi = [feasible_set.h @ phi @ xi[:, None] <= feasible_set.g
+                for xi in xis.T]
 
         # Quadratic cost function
-        cost = cp.sum([pxi.T @ weights @ pxi
-                       for pxi in phi_xi.T]) / xis.shape[1]
+        cost = cp.norm(weights @ phi @ xis, 'fro') / xis.shape[1]
 
         # Solve the optimization problem
         cp.Problem(cp.Minimize(cost), cons + c_xi).solve(verbose=verbose)
