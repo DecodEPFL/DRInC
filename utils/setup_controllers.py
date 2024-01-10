@@ -63,9 +63,8 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
         return lqg_non_gauss(np.std(xis.flatten()) * rn, weights)
 
     # Obtain dqrlg closure, with infinite feasible set
-    drlqg_non_gauss = lqg_non_gauss
-    #drlqg_non_gauss = synthesize_drinc(sys, t_fir, inf_fset, support,
-    #                         radius, p_level, None, None, verbose)
+    drlqg_non_gauss = synthesize_drinc(sys, t_fir, inf_fset, support,
+                             radius, p_level, None, None, verbose)
 
     # Make DR-LQG closure, the gaussian has the same variance as the samples
     # This is an approximation as the center is empirical, not exactly Gaussian

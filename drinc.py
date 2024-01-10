@@ -68,7 +68,7 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
         q = cp.Variable(((_n + _p) * _t, (_n + _p) * _t))
 
         # Generate the constraints
-        cons = mkach(phi) + mkcvar(phi, xis)# + mkcons(q, xis) + mkcvar(phi, xis)
+        cons = mkach(phi) + mkcons(q, xis) + mkcvar(phi, xis)
 
         # Add the link between Q and phi
         cons += [cp.bmat([[q, (weights @ phi).T],

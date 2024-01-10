@@ -71,4 +71,4 @@ def test_cvar_constraints(verbose=False):
 if __name__ == '__main__':
     # Not using generators for unit tests
     np.random.seed(123)
-    test_cvar_constraints(False)
+    test_cvar_constraints()

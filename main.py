@@ -30,7 +30,7 @@ def run():
     g_full = np.kron(np.ones((t_test, 1)), fset.g)
 
     # Get controllers
-    controllers = list(get_controllers(*params[1:-2], verbose=True))
+    controllers = list(get_controllers(*params[1:-2]))
     controllers = [controllers[0]]
     controller_names = ["DRInC"]
 
