@@ -66,7 +66,7 @@ def synthesize_robust(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
         weights = np.eye(_n + _m) if weights is None else weights
 
         # Quadratic cost function
-        cost = cp.norm(weights @ phi @ xis, 'fro') / xis.shape[1]
+        cost = cp.norm(weights @ phi @ xis, 'fro') ** 2
 
         # Solve the optimization problem
         cp.Problem(cp.Minimize(cost), cons).solve(verbose=verbose)

@@ -11,7 +11,7 @@ import numpy as np
 from tqdm import tqdm
 from utils.display import print_results
 from utils.simulate import simulate
-from utils.setup_controllers import get_controllers
+from utils.setup_controllers import get_controllers, controller_names
 from experiments.double_integrator import double_integrator_experiment
 
 
@@ -31,8 +31,6 @@ def run():
 
     # Get controllers
     controllers = list(get_controllers(*params[1:-2]))
-    controllers = [controllers[0]]
-    controller_names = ["DRInC"]
 
     # Simulate all distributions
     c, v, x, u, y = dict(), dict(), dict(), dict(), dict()
@@ -41,12 +39,13 @@ def run():
         c[d], v[d], x[d], u[d], y[d] = dict(), dict(), dict(), dict(), dict()
         for n, phi in zip(controller_names,
                           [c(xis_train[d], _w) for c in controllers]):
-            # Simulate the closed loop map, key access because I'm lazy
-            x[d][n], u[d][n], y[d][n] = simulate(phi, sys, xis)
+            # Simulate the closed loop map
+            x[d][n], u[d][n], y[d][n], _ = simulate(phi, sys, xis)
 
-            # Reformat x and u to split each time step
-            xs = np.split(x[d][n], t_test, axis=0)
-            us = np.split(u[d][n], t_test, axis=0)
+            # Reformat x and u to split each time step and remove x0, u0
+            t_split = t_test+t_fir if n != "LQG" else t_test+1
+            xs = np.split(x[d][n], t_split, axis=0)[-t_test:]
+            us = np.split(u[d][n], t_split, axis=0)[-t_test:]
             ux = np.vstack([np.vstack((_x, _u)) for _x, _u in zip(xs, us)])
 
             # Compute the costs and the constraint violations
@@ -57,14 +56,14 @@ def run():
     print_results(c, v, 20)
 
     # Plot the results
-    import matplotlib.pyplot as plt
-    for d in x.keys():
-        plt.figure().suptitle(d)
-        print(np.min(fset.g), np.max((x[d][controller_names[0]])))
-        for n in [controller_names[0]]:#[d].keys():
-            plt.plot(x[d][n][::2, :], x[d][n][1::2, :], label=n)
-        plt.legend()
-        plt.show()
+    # import matplotlib.pyplot as plt
+    # for d in x.keys():
+    #     plt.figure().suptitle(d)
+    #     print(np.min(fset.g), np.max((x[d][controller_names[0]])))
+    #     for n in [controller_names[0]]:#[d].keys():
+    #         plt.plot(x[d][n][::2, :], x[d][n][1::2, :], label=n)
+    #     plt.legend()
+    #     plt.show()
 
 
     return

@@ -76,8 +76,7 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
                  q == q.T]
 
         # Set a bit higher tolerance for the solver (default is 1e3)
-        mskp = {'MSK_DPAR_INTPNT_CO_TOL_NEAR_REL': 1e6}
-        #        'MSK_DPAR_INTPNT_CO_TOL_INFEAS': 1e0}
+        mskp = {'MSK_DPAR_INTPNT_CO_TOL_NEAR_REL': 1e5}
 
         # Solve the optimization problem
         cp.Problem(cp.Minimize(mkcost(q, xis)*0 + regular*cp.trace(q)),

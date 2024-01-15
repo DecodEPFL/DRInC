@@ -9,12 +9,13 @@ Copyright Jean-Sébastien Brouillon (2024)
 import numpy as np
 from drinc import synthesize_drinc
 from benchmarks.robust import synthesize_robust
-from benchmarks.empirical import synthesize_empirical
+from benchmarks.filtered_lqg import synthesize_auglqg
+from benchmarks.lqg import synthesize_lqg
 from utils.data_structures import LinearSystem, Polytope
 from utils.distributions import get_distribution
 
 # List of controller names, useful to iterate over all controllers
-controller_names = ["DRInC", "Robust", "Empirical", "LQG", "DR-LQG"]
+controller_names = ["DRInC", "Robust", "AugLQG", "LQG", "DR-LQG"]
 
 
 def get_controllers(t_fir: int, radius: float, p_level: float,
@@ -42,7 +43,7 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
                              radius, p_level, None, None, verbose)
 
     # Obtain empirical closure, just drinc with very small Wasserstein ball
-    emp = synthesize_empirical(sys, t_fir, fset, verbose)
+    emp = synthesize_auglqg(sys, t_fir, fset, verbose)
 
     # Obtain robust closure
     rob = synthesize_robust(sys, t_fir, fset, support, verbose)
@@ -55,16 +56,19 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
     inf_fset.h, inf_fset.g = 0*fset.h, 0*fset.g
 
     # Obtain lqg closure, with infinite feasible set
-    lqg_non_gauss = synthesize_empirical(sys, t_fir, inf_fset, verbose)
+    lqg_non_gauss = synthesize_auglqg(sys, t_fir, inf_fset, verbose)
 
-    # Make lqg closure, the gaussian has the same variance as the samples
+    # Make lqg closure for compatibility. Use empirical covariances
     def lqg(xis, weights=None):
-        rn = np.hstack([gauss(xis.shape[0]) for i in range(xis.shape[1]*10)])
-        return lqg_non_gauss(np.std(xis.flatten()) * rn, weights)
+        _n, _p = sys.a.shape[0], sys.c.shape[0]
+        p_cov = np.cov(np.hstack([xis[_n*i:_n*(i+1), :] for i in range(t_fir)]))
+        m_cov = np.cov(np.hstack([xis[_n*t_fir + _p*i:_n*t_fir + _p*(i+1),
+                                      :] for i in range(t_fir)]))
+        return synthesize_lqg(sys, p_cov, m_cov, weights)
 
     # Obtain dqrlg closure, with infinite feasible set
     drlqg_non_gauss = synthesize_drinc(sys, t_fir, inf_fset, support,
-                             radius, p_level, None, None, verbose)
+                                       radius, p_level, None, None, verbose)
 
     # Make DR-LQG closure, the gaussian has the same variance as the samples
     # This is an approximation as the center is empirical, not exactly Gaussian

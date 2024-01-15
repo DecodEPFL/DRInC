@@ -11,7 +11,7 @@ from utils.data_structures import Polytope, LinearSystem
 from achievability import achievability_constraints
 
 
-def synthesize_empirical(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
+def synthesize_auglqg(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
                          verbose=False):
     """
     This function generates the closure that defines the empirical
@@ -45,22 +45,24 @@ def synthesize_empirical(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     # Get achievability constraints
     cons = achievability_constraints(sys, t_fir)(phi)
 
-    def mkemp(xis, weights=None):
+    def mkaug(xis, weights=None):
         weights = np.eye(_n + _m) if weights is None else weights
+        evalues, evectors = np.linalg.eig(np.cov(xis))
+        cov_sqrt = evectors * np.sqrt(evalues) @ evectors.T
 
         # Add constraints for each sample
         c_xi = [feasible_set.h @ phi @ xi[:, None] <= feasible_set.g
                 for xi in xis.T]
 
         # Quadratic cost function
-        cost = cp.norm(weights @ phi @ xis, 'fro') / xis.shape[1]
+        cost = cp.norm(weights @ phi @ cov_sqrt, 'fro') ** 2
 
         # Solve the optimization problem
         cp.Problem(cp.Minimize(cost), cons + c_xi).solve(verbose=verbose)
 
         return phi.value
 
-    return mkemp
+    return mkaug
 
 
 

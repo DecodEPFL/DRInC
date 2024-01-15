@@ -28,7 +28,7 @@ def achievability_constraints(sys: LinearSystem, t_fir: int):
     # Check what kind of system is at hand
     if sys.a is None:
         raise AttributeError("The system must have a state space matrix.")
-    if sys.b is None or sys.c is None:
+    if sys.b is None and sys.c is None:
         raise AttributeError("The system must have an input or output matrix.")
 
     # Check that the system is square
@@ -84,7 +84,7 @@ def achievability_constraints(sys: LinearSystem, t_fir: int):
             cons += [phi @ np.vstack((_k(_zm, _i(_n)), _k(_zm, 0 * sys.c)))
                      == phi @ np.vstack((_k(_zp, sys.a), _k(_zp, sys.c)))
                      + np.vstack((_k(_zp[[-1], :], _i(_n)),
-                                  _k(_zp[[-1], :], 0 * sys.c)))]
+                                  _k(_zp[[-1], :], 0 * sys.b.T)))]
             return cons
 
     return mkcons

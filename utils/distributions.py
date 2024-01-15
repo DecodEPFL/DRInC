@@ -7,8 +7,11 @@ Copyright Jean-Sébastien Brouillon (2024)
 
 import numpy as np
 rng = np.random.default_rng(123)
-implemented = ['gaussian', 'uniform', 'truncated_gaussian', 'bimodal_gaussian',
+implemented = ['uniform', 'truncated_gaussian', 'bimodal_gaussian',
                'constant', 'sine', 'sawtooth', 'triangle', 'step']
+#implemented = ["gaussian"]
+# Add line saying why didn't use a Gaussian or any unbounded distribution
+# (compare, especially in the bounded support case, which has not been studied in the literature)
 
 
 def get_random_int(n: int):

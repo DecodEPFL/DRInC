@@ -33,12 +33,12 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     # Time horizons, problem ill conditionned if t_fir < 5
     t_fir, t_test = 7, 40
     # Feasible set 'extra' size and cvar probability level
-    feas_margin, p_level = 2.0, 5e-2
+    feas_margin, p_level = 20.0, 5e-2
     # Noise level and empirically tuned support size
     # (by checking for samples out of support)
-    noise, sup_r = 0.4, 4
+    noise, sup_r = 0.4, 2  # 5 sigmas
     # Number of samples
-    _ntrain, _ntest = 5, 5  # 100
+    _ntrain, _ntest = 5, 100
 
     # System definition
     sys = LinearSystem()
