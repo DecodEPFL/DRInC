@@ -1,3 +1,10 @@
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+Dynamic controler synthesis for stationary LQG policy. This uses an optimal
+Kalman filter and LQR controller, obtained by solving Riccatti equations.
+
+Copyright Jean-Sébastien Brouillon (2024)
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
 import numpy as np
 from scipy.linalg import solve_discrete_are
 from utils.data_structures import LinearSystem
@@ -34,8 +41,8 @@ def synthesize_lqg(sys: LinearSystem, cov_process: np.ndarray,
         raise ValueError("System dimensions are not compatible.")
 
     # Handle optional parameter
-    if weights is None:
-        weights = np.eye(sys.a.shape[0] + sys.b.shape[1])
+    weights = np.eye(sys.a.shape[0] + sys.b.shape[1]) if weights is not None \
+        else weights @ weights.T  # original def is square root
 
     # Variables
     _n = sys.a.shape[0]
@@ -43,10 +50,6 @@ def synthesize_lqg(sys: LinearSystem, cov_process: np.ndarray,
     _q = weights[:_n, :_n] + _s @ np.linalg.inv(weights[_n:, _n:]) @ _s.T
     _r = weights[_n:, _n:]
     _a = sys.a - sys.b @ np.linalg.inv(_r) @ _s.T
-
-    # To test: same as matlab
-    cov_process = np.eye(_n)
-    cov_measure = np.eye(sys.c.shape[0])
 
     # Controller design
     lqg = LinearSystem()

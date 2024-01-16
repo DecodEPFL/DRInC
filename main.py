@@ -43,7 +43,7 @@ def run():
             x[d][n], u[d][n], y[d][n], _ = simulate(phi, sys, xis)
 
             # Reformat x and u to split each time step and remove x0, u0
-            t_split = t_test+t_fir if n != "LQG" else t_test+1
+            t_split = t_test+1 if n in ["LQG", "DR-LQG"] else t_test+t_fir
             xs = np.split(x[d][n], t_split, axis=0)[-t_test:]
             us = np.split(u[d][n], t_split, axis=0)[-t_test:]
             ux = np.vstack([np.vstack((_x, _u)) for _x, _u in zip(xs, us)])

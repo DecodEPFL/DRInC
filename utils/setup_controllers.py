@@ -8,14 +8,19 @@ Copyright Jean-Sébastien Brouillon (2024)
 
 import numpy as np
 from drinc import synthesize_drinc
+from utils.data_structures import LinearSystem, Polytope
+from utils.distributions import get_distribution
 from benchmarks.robust import synthesize_robust
 from benchmarks.filtered_lqg import synthesize_auglqg
 from benchmarks.lqg import synthesize_lqg
-from utils.data_structures import LinearSystem, Polytope
-from utils.distributions import get_distribution
+try:
+    from benchmarks.drlqg import drlqg_covariances
+    controller_names = ["DR-LQG"]
+except ImportError:
+    drlqg_covariances, controller_names = None, []
 
 # List of controller names, useful to iterate over all controllers
-controller_names = ["DRInC", "Robust", "AugLQG", "LQG", "DR-LQG"]
+controller_names = ["DRInC", "Robust", "AugLQG", "LQG"] + controller_names
 
 
 def get_controllers(t_fir: int, radius: float, p_level: float,
@@ -38,6 +43,8 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
     :param verbose: bool, if True, prints the optimization verbose.
     :return: list of closures for each controller in controller_names.
     """
+    _n, _p = sys.a.shape[0], sys.c.shape[0]
+
     # Obtain drinc closure
     drinc = synthesize_drinc(sys, t_fir, fset, support,
                              radius, p_level, None, None, verbose)
@@ -48,33 +55,34 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
     # Obtain robust closure
     rob = synthesize_robust(sys, t_fir, fset, support, verbose)
 
-    # Gaussian distribution is an alternative center for the Wasserstein ball
-    # We approximate it with an empirical distribution with Gaussian samples
-    gauss = get_distribution("gaussian")
-    # Make infinite feasible set to cancel the constraints
-    inf_fset = Polytope()
-    inf_fset.h, inf_fset.g = 0*fset.h, 0*fset.g
-
-    # Obtain lqg closure, with infinite feasible set
-    lqg_non_gauss = synthesize_auglqg(sys, t_fir, inf_fset, verbose)
-
     # Make lqg closure for compatibility. Use empirical covariances
     def lqg(xis, weights=None):
-        _n, _p = sys.a.shape[0], sys.c.shape[0]
         p_cov = np.cov(np.hstack([xis[_n*i:_n*(i+1), :] for i in range(t_fir)]))
         m_cov = np.cov(np.hstack([xis[_n*t_fir + _p*i:_n*t_fir + _p*(i+1),
                                       :] for i in range(t_fir)]))
         return synthesize_lqg(sys, p_cov, m_cov, weights)
 
-    # Obtain dqrlg closure, with infinite feasible set
-    drlqg_non_gauss = synthesize_drinc(sys, t_fir, inf_fset, support,
-                                       radius, p_level, None, None, verbose)
+    # Skip if pythorch is not installed
+    if "DR-LQG" in controller_names:
+        # Make DR-LQG closure as LQG with worst-case variances
+        def drlqg(xis, weights=None):
+            # Center distribution variances
+            _w = np.cov(np.hstack([xis[_n*i:_n*(i+1), :]
+                                   for i in range(t_fir)]))
+            _v = np.cov(np.hstack([xis[_n*t_fir + _p*i:_n*t_fir + _p*(i+1), :]
+                                   for i in range(t_fir)]))
 
-    # Make DR-LQG closure, the gaussian has the same variance as the samples
-    # This is an approximation as the center is empirical, not exactly Gaussian
-    def drlqg(xis, weights=None):
-        rn = np.hstack([gauss(xis.shape[0]) for i in range(xis.shape[1])])
-        return drlqg_non_gauss(np.std(xis.flatten()) * rn, weights)
+            # Worst case computation, t_fir = 1 as for LQG
+            _, _, p_cov, m_cov = drlqg_covariances(sys, 1, _w, _v, radius)
+            # Remove initial state variance (same as process noise)
+            p_cov = p_cov[-_n:, -_n:]
+
+            # LQG with worst case variances
+            return synthesize_lqg(sys, p_cov, m_cov, weights)
+    else:
+        print("Warning: Install pytorch to enable DR-LQG. Standard LQG used "
+              "instead.")
+        drlqg = lqg
 
     return drinc, rob, emp, lqg, drlqg
 
