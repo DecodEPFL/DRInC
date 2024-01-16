@@ -32,8 +32,8 @@ def get_distribution(name: str, param=None):
         - 'uniform': Uniform distribution on the unit interval
         - 'truncated_gaussian': Truncated Gaussian distribution with mean 0 and
             variance param[0] (default=1), truncated on the unit interval
-        - 'bimodal_gaussian': Bimodal Gaussian distribution with means -1 and 1
-            and variance param[0] (default=1)
+        - 'bimodal_gaussian': Bimodal Gaussian distribution with means ±0.5
+            and variance param[0] (default=1), truncated on the unit interval
         - 'constant': Constant distribution with value 1
         - 'sine': Sine profile with frequency param[0] (default=1),
             phase param[1] (default=0), and unit sampling frequency
@@ -70,7 +70,7 @@ def get_distribution(name: str, param=None):
             return rng.standard_normal((n, 1))
     elif name.lower() == "uniform":
         def distribution(n):
-            return rng.uniform(0.0, 1.0, (n, 1))
+            return rng.uniform(-1.0, 1.0, (n, 1))
     elif name.lower() == "truncated_gaussian":
         def distribution(n):
             num = param[0] * rng.standard_normal((n, 1))
@@ -81,8 +81,14 @@ def get_distribution(name: str, param=None):
             return num
     elif name.lower() == "bimodal_gaussian":
         def distribution(n):
+            # Bimodal Gaussian
             num = rng.uniform(-1.0, 1.0, (n, 1))
-            return rng.standard_normal((n, 1)) * param[0] + np.sign(num)
+            num = rng.standard_normal((n, 1)) * param[0] + 0.5*np.sign(num)
+
+            # Truncate
+            num[np.abs(num[:, 0]) > 1, 0] = \
+                rng.uniform(-1.0, 1.0, (np.sum(np.abs(num) > 1),))
+            return num
     elif name.lower() == "constant":
         def distribution(n):
             return np.ones((n, 1))
