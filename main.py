@@ -11,7 +11,7 @@ import numpy as np
 from tqdm import tqdm
 from utils.display import print_results
 from utils.simulate import simulate
-from utils.setup_controllers import get_controllers, controller_names
+from utils.setup_controllers import get_controllers
 from experiments.double_integrator import double_integrator_experiment
 
 
@@ -30,17 +30,24 @@ def run():
     g_full = np.kron(np.ones((t_test, 1)), fset.g)
 
     # Get controllers
-    controllers = list(get_controllers(*params[1:-2]))
+    controllers = get_controllers(*params[1:-2])
 
     # Simulate all distributions
     c, v, x, u, y = dict(), dict(), dict(), dict(), dict()
     for d, xis in tqdm(xis_test.items()):
         # Simulate the closed loop maps
         c[d], v[d], x[d], u[d], y[d] = dict(), dict(), dict(), dict(), dict()
-        for n, phi in zip(controller_names,
-                          [c(xis_train[d], _w) for c in controllers]):
+        for n, ctrl in controllers.items():
+            if ctrl is None:  # Skip if controller not available
+                continue
+
             # Simulate the closed loop map
-            x[d][n], u[d][n], y[d][n], _ = simulate(phi, sys, xis)
+            try:
+                x[d][n], u[d][n], y[d][n], _ = \
+                    simulate(ctrl(xis_train[d], _w), sys, xis)
+            except AttributeError:  # Control design problem infeasible
+                print(f"Controller {n} infeasible for distribution {d}")
+                continue
 
             # Reformat x and u to split each time step and remove x0, u0
             t_split = t_test+1 if n in ["LQG", "DR-LQG"] else t_test+t_fir
@@ -53,7 +60,7 @@ def run():
             v[d][n] = np.mean([np.any(h_full @ _ux > g_full) for _ux in ux.T])
 
     # Print the costs in a table with a given cell width
-    print_results(c, v, 20)
+    print_results(c, v, 20, labels=list(controllers.keys()))
 
     # Plot the results
     # import matplotlib.pyplot as plt

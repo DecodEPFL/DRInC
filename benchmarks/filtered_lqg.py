@@ -12,7 +12,7 @@ from achievability import achievability_constraints
 
 
 def synthesize_auglqg(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
-                         verbose=False):
+                      verbose=False, reg=1e-4):
     """
     This function generates the closure that defines the empirical
     control design problem. The closure can be used afterward for
@@ -26,6 +26,7 @@ def synthesize_auglqg(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     :param t_fir: int > 0, length of the FIR SLS closed loop map filter.
     :param feasible_set: Polytope, the feasible set of the optimization problem.
     :param verbose: bool, if True, prints the optimization verbose.
+    :param reg: float > 0, minimum covariance eigenvalues.
     :return: closure with signature (xis, weights) -> phi, where phi is the SLS
         closed loop map, xis are the samples of the empirical distribution
         (one column per sample), and weights is the matrix square root of the
@@ -48,7 +49,8 @@ def synthesize_auglqg(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     def mkaug(xis, weights=None):
         weights = np.eye(_n + _m) if weights is None else weights
         evalues, evectors = np.linalg.eig(np.cov(xis))
-        cov_sqrt = evectors * np.sqrt(evalues) @ evectors.T
+        # Clip the covariance matrix to avoid numerical issues
+        cov_sqrt = evectors * np.sqrt(np.clip(evalues, reg, None)) @ evectors.T
 
         # Add constraints for each sample
         c_xi = [feasible_set.h @ phi @ xi[:, None] <= feasible_set.g

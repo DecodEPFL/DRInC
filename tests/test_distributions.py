@@ -33,8 +33,8 @@ def test_distributions(verbose=False):
         print("All tests passed")
         print("The profiles are shown at the top, "
               "over time (x axis) and around y=0.")
-        print(f"The distributions are shown at the bottom,"
-              f"centered around {_n*3/2} and scaled by 10.")
+        print(f"The distributions shown at the bottom are rescaled"
+              f"and recentered to be contained in [0, {_n*3}].")
 
 # Press the green button in the gutter to run the test.
 if __name__ == '__main__':

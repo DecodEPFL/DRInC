@@ -10,18 +10,15 @@ import numpy as np
 from drinc import synthesize_drinc
 from utils.data_structures import LinearSystem, Polytope
 from utils.distributions import get_distribution
-from benchmarks.robust import synthesize_robust
 from benchmarks.filtered_lqg import synthesize_auglqg
 from benchmarks.lqg import synthesize_lqg
+# Try to import robust and drlqg, if not available, skip
+# (they require the pycddlib and pytorch packages, respectively)
+from benchmarks.robust import synthesize_robust
 try:
     from benchmarks.drlqg import drlqg_covariances
-    controller_names = ["DR-LQG"]
 except ImportError:
-    drlqg_covariances, controller_names = None, []
-
-# List of controller names, useful to iterate over all controllers
-controller_names = ["DRInC", "Robust", "AugLQG", "LQG"] + controller_names
-
+    drlqg_covariances = None
 
 def get_controllers(t_fir: int, radius: float, p_level: float,
                     sys: LinearSystem, fset: Polytope, support: Polytope,
@@ -52,7 +49,7 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
     # Obtain empirical closure, just drinc with very small Wasserstein ball
     emp = synthesize_auglqg(sys, t_fir, fset, verbose)
 
-    # Obtain robust closure
+    # Obtain robust closure, skip if pythorch is not installed
     rob = synthesize_robust(sys, t_fir, fset, support, verbose)
 
     # Make lqg closure for compatibility. Use empirical covariances
@@ -63,7 +60,7 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
         return synthesize_lqg(sys, p_cov, m_cov, weights)
 
     # Skip if pythorch is not installed
-    if "DR-LQG" in controller_names:
+    if drlqg_covariances is not None:
         # Make DR-LQG closure as LQG with worst-case variances
         def drlqg(xis, weights=None):
             # Center distribution variances
@@ -80,10 +77,10 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
             # LQG with worst case variances
             return synthesize_lqg(sys, p_cov, m_cov, weights)
     else:
-        print("Warning: Install pytorch to enable DR-LQG. Standard LQG used "
-              "instead.")
-        drlqg = lqg
+        print("Warning: Install pytorch to enable DR-LQG. Skipping...")
+        drlqg = None
 
-    return drinc, rob, emp, lqg, drlqg
+    return {"DRInC": drinc, "AugLQG": emp, "LQG": lqg,
+            "Robust": rob, "DR-LQG": drlqg}
 
 

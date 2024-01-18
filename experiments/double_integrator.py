@@ -32,11 +32,8 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     _m, _n, _p = 1, 2, 1
     # Time horizons, problem ill conditionned if t_fir < 5
     t_fir, t_test = 7, 40
-    # Feasible set 'extra' size and cvar probability level
-    feas_margin, p_level = 20.0, 5e-2
-    # Noise level and empirically tuned support size
-    # (by checking for samples out of support)
-    noise, sup_r = 0.4, 2  # 5 sigmas
+    # Feasible set size, cvar probability level, and noise level
+    feas_r, p_level, noise = 10.0, 5e-2, 0.2
     # Number of samples
     _ntrain, _ntest = 5, 100
 
@@ -49,12 +46,12 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     support = Polytope()
     support.h = np.vstack((np.eye((_n + _p) * t_fir),
                            -np.eye((_n + _p) * t_fir)))
-    support.g = sup_r * uni(2 * (_n + _p) * t_fir)
+    support.g = noise * np.ones((2 * (_n + _p) * t_fir, 1)) * 10
 
     # Feasible set definition
     fset = Polytope()
     fset.h = np.vstack((np.eye(_n + _m), -np.eye(_n + _m)))
-    fset.g = (feas_margin - t_fir*sup_r) * uni(2 * (_n + _m)) + t_fir*sup_r
+    fset.g = feas_r * np.ones((2 * (_n + _m), 1))
 
     # Define the distributions to experiment with
     ds = dict()
@@ -63,7 +60,7 @@ def double_integrator_experiment(radius=0.1, verbose=False):
             p = [0.1] if n != 'step' else [0, 5]
             ds[n] = (get_distribution(n, p), p)
         else:
-            p = [0.4] if n == 'bimodal_gaussian' else []
+            p = [0.2] if n == 'bimodal_gaussian' else []
             ds[n] = (get_distribution(n, p), p)
 
     # Generate training and testing samples
@@ -72,8 +69,8 @@ def double_integrator_experiment(radius=0.1, verbose=False):
         for n, (d, p) in ds.items():
             xi = []
             for i in range(_ntrain):
-                p[1] = get_random_int((_n + _p) * _t)
-                xi.append(d((_n + _p) * _t))
+                p[1] = get_random_int(_p * _t)
+                xi.append(np.vstack([d(_n * _t), d(_p * _t)]))
             xi = np.hstack(xi)
             _xis[n] = xi * noise
 

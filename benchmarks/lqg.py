@@ -10,8 +10,8 @@ from scipy.linalg import solve_discrete_are
 from utils.data_structures import LinearSystem
 
 
-def synthesize_lqg(sys: LinearSystem, cov_process: np.ndarray,
-                   cov_measure: np.ndarray, weights: np.ndarray = None):
+def synthesize_lqg(sys: LinearSystem, cov_process: np.ndarray, cov_measure:
+                   np.ndarray, weights: np.ndarray = None, reg: float = 1e-4):
     """
     This function generates a dynamical system implementing the LQG controller.
     It uses the infinite-horizon LQR and LQE solutions to the Riccati equation.
@@ -22,6 +22,7 @@ def synthesize_lqg(sys: LinearSystem, cov_process: np.ndarray,
         the measurement noise.
     :param weights: np.ndarray, the weight matrix of the LQR problem.
         Default is identity.
+    :param reg: float > 0, minimum covariance eigenvalues.
     :return: LinearSystem, the dynamical controller with internal states being
         the estimates of the system's state.
     """
@@ -43,6 +44,16 @@ def synthesize_lqg(sys: LinearSystem, cov_process: np.ndarray,
     # Handle optional parameter
     weights = np.eye(sys.a.shape[0] + sys.b.shape[1]) if weights is not None \
         else weights @ weights.T  # original def is square root
+
+    # Handle scalar variance
+    cov_process = np.atleast_2d(cov_process)
+    cov_measure = np.atleast_2d(cov_measure)
+
+    # Clip covariance matrix to avoid numerical issues
+    if any(np.linalg.eigvals(cov_process) < reg):
+        cov_process += np.eye(cov_process.shape[0]) * reg
+    if any(np.linalg.eigvals(cov_measure) < reg):
+        cov_measure += np.eye(cov_measure.shape[0]) * reg
 
     # Variables
     _n = sys.a.shape[0]
