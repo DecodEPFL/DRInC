@@ -63,17 +63,15 @@ def run():
     # Print the costs in a table with a given cell width
     print_results(c, v, 20, labels=list(controllers.keys()))
 
-    # Plot the results
-    import matplotlib.pyplot as plt
-    for d in x.keys():
-        plt.figure().suptitle(d)
-        #print(np.min(fset.g), np.max((x[d][controller_names[0]])))
-        for n in [list(controllers.keys())[0]]:#[d].keys():
-            plt.plot(x[d][n][::2, :], x[d][n][1::2, :], label=n)
-        plt.legend()
-        plt.show()
-
-
+    # # Plot the results
+    # import matplotlib.pyplot as plt
+    # for d in x.keys():
+    #     plt.figure().suptitle(d)
+    #     #print(np.min(fset.g), np.max((x[d][controller_names[0]])))
+    #     for n in [list(controllers.keys())[0]]:#[d].keys():
+    #         plt.plot(x[d][n][::2, :], x[d][n][1::2, :], label=n)
+    #     plt.legend()
+    #     plt.show()
     return
 
 

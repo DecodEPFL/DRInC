@@ -34,8 +34,9 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     t_fir, t_test = 6, 40
     # Feasible set size, cvar probability level, and noise level
     feas_r, p_level, noise = 70.0, 5e-2, 1.0  # 70
-    # Number of samples
-    _ptrain, _ptest = (25, [1.01, 1.01]), (100, [0.99, 0.99])
+    # Number of samples. The list contains parameters for distributions.
+    # Their values are explained in utils/distributions.py
+    _ptrain, _ptest = (25, [0.99, 0.99]), (100, [1.01, 1.01])
 
     # System definition
     sys = LinearSystem()
