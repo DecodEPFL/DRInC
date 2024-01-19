@@ -79,7 +79,7 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
         mskp = {'MSK_DPAR_INTPNT_CO_TOL_NEAR_REL': 1e5}
 
         # Solve the optimization problem
-        cp.Problem(cp.Minimize(mkcost(q, xis)*0 + regular*cp.trace(q)),
+        cp.Problem(cp.Minimize(mkcost(q, xis) + regular*cp.trace(q)),
                    cons).solve(solver=cp.MOSEK, verbose=verbose,
                                mosek_params=mskp)
 

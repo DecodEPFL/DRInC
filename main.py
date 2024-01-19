@@ -17,7 +17,7 @@ from experiments.double_integrator import double_integrator_experiment
 
 def run():
     experiment = double_integrator_experiment
-    _w = np.eye(3)
+    _w = np.diag([1, 4, 1])
 
     # Get experiment parameters, as a list to pass directly to get_controllers
     params = list(experiment())
@@ -46,7 +46,8 @@ def run():
                 x[d][n], u[d][n], y[d][n], _ = \
                     simulate(ctrl(xis_train[d], _w), sys, xis)
             except AttributeError:  # Control design problem infeasible
-                print(f"Controller {n} infeasible for distribution {d}")
+                print(f"Warning: Controller {n} could not be synthesized"
+                      f" for distribution {d}.")
                 continue
 
             # Reformat x and u to split each time step and remove x0, u0
@@ -63,14 +64,14 @@ def run():
     print_results(c, v, 20, labels=list(controllers.keys()))
 
     # Plot the results
-    # import matplotlib.pyplot as plt
-    # for d in x.keys():
-    #     plt.figure().suptitle(d)
-    #     print(np.min(fset.g), np.max((x[d][controller_names[0]])))
-    #     for n in [controller_names[0]]:#[d].keys():
-    #         plt.plot(x[d][n][::2, :], x[d][n][1::2, :], label=n)
-    #     plt.legend()
-    #     plt.show()
+    import matplotlib.pyplot as plt
+    for d in x.keys():
+        plt.figure().suptitle(d)
+        #print(np.min(fset.g), np.max((x[d][controller_names[0]])))
+        for n in [list(controllers.keys())[0]]:#[d].keys():
+            plt.plot(x[d][n][::2, :], x[d][n][1::2, :], label=n)
+        plt.legend()
+        plt.show()
 
 
     return

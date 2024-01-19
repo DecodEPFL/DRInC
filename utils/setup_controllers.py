@@ -1,7 +1,6 @@
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-Experiment setup for a double integrator system. The support and feasible sets
-are random polytope of the form {x | [I, -I] x <= g}, where g is a uniformly-
-distributed random vector.
+Gather controller synthesis functions and return closures for each controller.
+This allows to compare all benchamrks to DRInC in a unified way.
 
 Copyright Jean-Sébastien Brouillon (2024)
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -44,13 +43,15 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
 
     # Obtain drinc closure
     drinc = synthesize_drinc(sys, t_fir, fset, support,
-                             radius, p_level, None, None, verbose)
+                             radius, p_level, radius/8, None, verbose)
 
-    # Obtain empirical closure, just drinc with very small Wasserstein ball
+    # Obtain H2 controller closure
     emp = synthesize_auglqg(sys, t_fir, fset, verbose)
 
-    # Obtain robust closure, skip if pythorch is not installed
-    rob = synthesize_robust(sys, t_fir, fset, support, verbose)
+    # Obtain robust closure, cut low probability half of support for feasibility
+    rob_support = support
+    rob_support.g = support.g.copy()/2
+    rob = synthesize_robust(sys, t_fir, fset, rob_support, verbose)
 
     # Make lqg closure for compatibility. Use empirical covariances
     def lqg(xis, weights=None):
@@ -80,7 +81,7 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
         print("Warning: Install pytorch to enable DR-LQG. Skipping...")
         drlqg = None
 
-    return {"DRInC": drinc, "AugLQG": emp, "LQG": lqg,
-            "Robust": rob, "DR-LQG": drlqg}
+    return {"DRInC": drinc, "Robust": rob, "LQG": lqg,
+            "DR-LQG": drlqg}
 
 

@@ -30,10 +30,11 @@ def get_distribution(name: str, param=None):
     :param name: str, name of the distribution, must be one of the following:
         - 'gaussian': Gaussian distribution with mean 0 and variance 1
         - 'uniform': Uniform distribution on the unit interval
+        - 'beta': Beta distribution with parameters param[0] and param[1]
         - 'truncated_gaussian': Truncated Gaussian distribution with mean 0 and
             variance param[0] (default=1), truncated on the unit interval
-        - 'bimodal_gaussian': Bimodal Gaussian distribution with means ±0.5
-            and variance param[0] (default=1), truncated on the unit interval
+        - 'bimodal_gaussian': Bimodal Gaussian distribution with means
+            0 and 0.8*param[1] and standard deviation 0.2*param[0] (default=1)
         - 'constant': Constant distribution with value 1
         - 'sine': Sine profile with frequency param[0] (default=1),
             phase param[1] (default=0), and unit sampling frequency
@@ -71,6 +72,9 @@ def get_distribution(name: str, param=None):
     elif name.lower() == "uniform":
         def distribution(n):
             return rng.uniform(-1.0, 1.0, (n, 1))
+    elif name.lower() == "beta":
+        def distribution(n):
+            return rng.beta(param[0], param[1], (n, 1))
     elif name.lower() == "truncated_gaussian":
         def distribution(n):
             num = param[0] * rng.standard_normal((n, 1))
@@ -83,11 +87,8 @@ def get_distribution(name: str, param=None):
         def distribution(n):
             # Bimodal Gaussian
             num = rng.uniform(-1.0, 1.0, (n, 1))
-            num = rng.standard_normal((n, 1)) * param[0] + 0.5*np.sign(num)
-
-            # Truncate
-            num[np.abs(num[:, 0]) > 1, 0] = \
-                rng.uniform(-1.0, 1.0, (np.sum(np.abs(num) > 1),))
+            num = 0.2*rng.standard_normal((n, 1)) * param[0] \
+                + 0.8*(num > 0) * param[1]
             return num
     elif name.lower() == "constant":
         def distribution(n):
@@ -110,8 +111,9 @@ def get_distribution(name: str, param=None):
                                  % 4 - (2 - np.finfo(float).eps))[:, None]
     elif name.lower() == "step":
         def distribution(n):
-            return np.vstack([np.zeros((int(param[1]), 1)),
-                              np.ones((n-int(param[1]), 1))])
+            _t = rng.integers(1, n-1)  # random phase
+            return np.vstack([np.zeros((_t, 1)),
+                              np.ones((n-_t, 1))])
     else:
         raise NotImplementedError(f"Distribution with name {name} "
                                   f"is not in our library.")

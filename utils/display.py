@@ -37,7 +37,7 @@ def print_results(costs, violations, pitch=20, labels=None):
         for d in costs.keys():
             if n in costs[d].keys():
                 s += (str(np.round(costs[d][n], 2)) + ", "
-                      + str(np.round(violations[d][n], 4))).ljust(pitch)
+                      + str(np.round(violations[d][n]*100, 2))+"%").ljust(pitch)
             else:
                 s += "N/A".ljust(pitch)
         print(s)
