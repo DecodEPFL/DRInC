@@ -8,7 +8,9 @@ Copyright Jean-Sébastien Brouillon (2024)
 
 import numpy as np
 from utils.data_structures import LinearSystem, Polytope
-from utils.distributions import get_distribution, get_random_int, implemented
+from utils.distributions import get_distribution
+
+savepath = "results/double_integrator.npz"
 
 
 def double_integrator_experiment(radius=0.1, verbose=False):

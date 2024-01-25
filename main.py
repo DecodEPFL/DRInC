@@ -9,10 +9,10 @@ Copyright Jean-Sébastien Brouillon (2024)
 
 import numpy as np
 from tqdm import tqdm
-from utils.display import print_results
+from utils.display import print_results, plot_results
 from utils.simulate import simulate
 from utils.setup_controllers import get_controllers
-from experiments.double_integrator import double_integrator_experiment
+from experiments.double_integrator import double_integrator_experiment, savepath
 
 
 def run():
@@ -60,19 +60,30 @@ def run():
             c[d][n] = np.mean([_ux.T @ w_full @ _ux for _ux in ux.T])
             v[d][n] = np.mean([np.any(h_full @ _ux > g_full) for _ux in ux.T])
 
-    # Print the costs in a table with a given cell width
-    print_results(c, v, 20, labels=list(controllers.keys()))
+    # Save the results
+    xis = {'train': dict(), 'test': dict()}
+    # Reshape the samples to split the time steps
+    # Makes the shape (samples, time steps, states/outputs)
+    for k, _v in zip(['train', 'test'], [xis_train, xis_test]):
+        # Short notation
+        (_p, _n), _t = sys.c.shape, t_fir if k == 'train' else t_test
 
-    # # Plot the results
-    # import matplotlib.pyplot as plt
-    # for d in x.keys():
-    #     plt.figure().suptitle(d)
-    #     #print(np.min(fset.g), np.max((x[d][controller_names[0]])))
-    #     for n in [list(controllers.keys())[0]]:#[d].keys():
-    #         plt.plot(x[d][n][::2, :], x[d][n][1::2, :], label=n)
-    #     plt.legend()
-    #     plt.show()
-    return
+        # Deal with all distributions
+        xis[k] = dict()
+        for d, xi in _v.items():
+            xis[k][d] = dict()
+            xis[k][d]['w'] = xi[:_n*_t, :].reshape((-1, _n, xi.shape[1]))
+            xis[k][d]['v'] = xi[_n*_t:, :].reshape((-1, _p, xi.shape[1]))
+            xis[k][d]['w'] = np.rollaxis(xis[k][d]['w'], -1)
+            xis[k][d]['v'] = np.rollaxis(xis[k][d]['v'], -1)
+            print(xis[k][d]['w'].shape, xis[k][d]['v'].shape)
+
+    # Use .npz format
+    np.savez(savepath, c=c, v=v, x=x, u=u, y=y, xi=xis)
+
+    # Print the costs in a table with a given cell width
+    print_results(savepath, 20, labels=list(controllers.keys()))
+    plot_results(savepath)
 
 
 # Press the green button in the gutter to run the script.
