@@ -89,6 +89,13 @@ def get_distribution(name: str, param=None):
             num = rng.uniform(-1.0, 1.0, (n, 1))
             num = 0.2*rng.standard_normal((n, 1)) * param[0] \
                 + 0.8*(num > 0) * param[1]
+
+            # Truncate the tails at 2 sigmas
+            to_trunc = ((num[:, 0] > 0.8*param[1] + 0.4*param[0])
+                        | (num[:, 0] < -0.4*param[0]))
+            num[to_trunc, 0] = \
+                rng.uniform(-0.4*param[0], 0.8*param[1] + 0.4*param[0],
+                            (np.sum(to_trunc),))
             return num
     elif name.lower() == "constant":
         def distribution(n):

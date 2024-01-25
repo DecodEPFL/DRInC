@@ -50,7 +50,7 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
 
     # Obtain robust closure, cut low probability half of support for feasibility
     rob_support = support
-    rob_support.g = support.g.copy()/2
+    rob_support.g = support.g.copy() - 0.4*np.sign(support.g)
     rob = synthesize_robust(sys, t_fir, fset, rob_support, verbose)
 
     # Make lqg closure for compatibility. Use empirical covariances

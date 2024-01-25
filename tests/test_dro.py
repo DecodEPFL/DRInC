@@ -17,9 +17,9 @@ def test_drinc_cost(verbose=False):
 
     # Unit box support set
     support = Polytope()
-    support.h = np.vstack((np.eye(_d),
-                           -np.eye(_d)))
-    support.g = np.ones((2 * _d, 1))
+    support.h = np.vstack((1.0*np.eye(_d),
+                           -1.0*np.eye(_d)))
+    support.g = np.array([1.0] * _d + [0.0] * _d)[:, None]
 
     # Center distribution with two samples
     # One at zero and one at d=1 from border of support

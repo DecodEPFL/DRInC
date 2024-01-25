@@ -35,21 +35,22 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     # Time horizons, problem ill conditionned if t_fir < 5
     t_fir, t_test = 6, 40
     # Feasible set size, cvar probability level, and noise level
-    feas_r, p_level, noise = 70.0, 5e-2, 1.0  # 70
+    feas_r, p_level, noise = 60.0, 5e-2, 1.0  # 70
     # Number of samples. The list contains parameters for distributions.
     # Their values are explained in utils/distributions.py
-    _ptrain, _ptest = (25, [0.99, 0.99]), (100, [1.01, 1.01])
+    _ptrain, _ptest = (25, [1.0, 0.95]), (100, [1.0, 1.05])
 
     # System definition
     sys = LinearSystem()
     sys.a, sys.b, sys.c = np.array([[1, 1], [0, 1]]), \
         np.array([[0], [1]]), np.array([[1, 0]])
 
-    # Support definition
+    # Support definition as a box [-0.4*noise, 1.2*noise]^d
     support = Polytope()
     support.h = np.vstack((np.eye((_n + _p) * t_fir),
                            -np.eye((_n + _p) * t_fir)))
-    support.g = noise * np.ones((2 * (_n + _p) * t_fir, 1))
+    support.g = noise * np.array(([1.2] * (_n + _p) * t_fir)
+                                 + ([0.4] * (_n + _p) * t_fir))[:, None]
 
     # Feasible set definition
     fset = Polytope()
