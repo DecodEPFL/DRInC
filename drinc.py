@@ -62,6 +62,10 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     mkcost, mkcons = drinc_cost(support, radius)
 
     def mkdrinc(xis, weights=None):
+        # Check samples
+        if np.max(support.h @ xis - support.g) > 0:
+            raise ValueError("The samples are not in the support.")
+
         # Variables
         weights = np.eye(_n + _m) if weights is None else weights
         phi = cp.Variable((_n + _m, (_n + _p) * _t))

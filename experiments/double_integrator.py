@@ -13,7 +13,7 @@ from utils.distributions import get_distribution
 savepath = "results/double_integrator.npz"
 
 
-def double_integrator_experiment(radius=0.1, verbose=False):
+def double_integrator_experiment(radius=0.01, verbose=False):
     """
     This function runs the experiment for the double integrator system.
     It returns the system, the support, the feasible set, the training and
@@ -33,12 +33,12 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     # System dimensions
     _m, _n, _p = 1, 2, 1
     # Time horizons, problem ill conditionned if t_fir < 5
-    t_fir, t_test = 6, 40
+    t_fir, t_test = 10, 50
     # Feasible set size, cvar probability level, and noise level
-    feas_r, p_level, noise = 60.0, 5e-2, 1.0  # 70
+    feas_r, p_level, noise = 64.0, 5e-2, 1.0  # 70
     # Number of samples. The list contains parameters for distributions.
     # Their values are explained in utils/distributions.py
-    _ptrain, _ptest = (25, [1.0, 0.95]), (100, [1.0, 1.05])
+    _ptrain, _ptest = (50, [1.0, 0.9]), (1000, [1.0, 1.1])
 
     # System definition
     sys = LinearSystem()
@@ -52,7 +52,7 @@ def double_integrator_experiment(radius=0.1, verbose=False):
     support.g = noise * np.array(([1.2] * (_n + _p) * t_fir)
                                  + ([0.4] * (_n + _p) * t_fir))[:, None]
 
-    # Feasible set definition
+    # Feasible set definition 10*x1 <= feas_r, x2 <= feas_r
     fset = Polytope()
     fset.h = np.vstack((np.diag([10, 1, 0]), -np.diag([10, 1, 0])))
     fset.g = feas_r * np.ones((2 * (_n + _m), 1))

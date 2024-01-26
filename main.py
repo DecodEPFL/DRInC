@@ -76,7 +76,6 @@ def run():
             xis[k][d]['v'] = xi[_n*_t:, :].reshape((-1, _p, xi.shape[1]))
             xis[k][d]['w'] = np.rollaxis(xis[k][d]['w'], -1)
             xis[k][d]['v'] = np.rollaxis(xis[k][d]['v'], -1)
-            print(xis[k][d]['w'].shape, xis[k][d]['v'].shape)
 
     # Use .npz format
     np.savez(savepath, c=c, v=v, x=x, u=u, y=y, xi=xis)
