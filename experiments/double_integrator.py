@@ -13,13 +13,14 @@ from utils.distributions import get_distribution
 savepath = "results/double_integrator.npz"
 
 
-def double_integrator_experiment(radius=0.01, verbose=False):
+def double_integrator_experiment(radius=0.02, verbose=False):
     """
     This function runs the experiment for the double integrator system.
     It returns the system, the support, the feasible set, the training and
     testing samples.
 
-    :param radius: Radius of the Wasserstein ball
+    :param radius: Radius of the Wasserstein ball. Note that the Wasserstein
+        TYPE 2 metric is used, so the radius is the square of the type 1 radius.
     :param verbose: bool, if True, prints the optimization verbose.
     :return: LinearSystem, Polytope, Polytope, dict, dict. The first three are
         the parameters t_fir, radius, and p_level. The next three are
@@ -30,6 +31,7 @@ def double_integrator_experiment(radius=0.01, verbose=False):
     # Useful to generate random Polytopes
     uni = get_distribution("uniform")
 
+    print(radius)
     # System dimensions
     _m, _n, _p = 1, 2, 1
     # Time horizons, problem ill conditionned if t_fir < 5
@@ -38,7 +40,7 @@ def double_integrator_experiment(radius=0.01, verbose=False):
     feas_r, p_level, noise = 64.0, 5e-2, 1.0  # 70
     # Number of samples. The list contains parameters for distributions.
     # Their values are explained in utils/distributions.py
-    _ptrain, _ptest = (50, [1.0, 0.9]), (1000, [1.0, 1.1])
+    _ptrain, _ptest = (25, [1.0, 0.9]), (1000, [1.0, 1.1])
 
     # System definition
     sys = LinearSystem()

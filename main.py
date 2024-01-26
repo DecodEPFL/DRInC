@@ -9,7 +9,7 @@ Copyright Jean-Sébastien Brouillon (2024)
 
 import numpy as np
 from tqdm import tqdm
-from utils.display import print_results, plot_results
+from utils.display import print_results, plot_distributions
 from utils.simulate import simulate
 from utils.setup_controllers import get_controllers
 from experiments.double_integrator import double_integrator_experiment, savepath
@@ -72,8 +72,10 @@ def run():
         xis[k] = dict()
         for d, xi in _v.items():
             xis[k][d] = dict()
-            xis[k][d]['w'] = xi[:_n*_t, :].reshape((-1, _n, xi.shape[1]))
-            xis[k][d]['v'] = xi[_n*_t:, :].reshape((-1, _p, xi.shape[1]))
+            _t2 = _t if d in ['sine', 'sawtooth', 'triangle', 'step'] else 1
+
+            xis[k][d]['w'] = xi[:_n*_t, :].reshape((-1, _n*_t2, xi.shape[1]))
+            xis[k][d]['v'] = xi[_n*_t:, :].reshape((-1, _p*_t2, xi.shape[1]))
             xis[k][d]['w'] = np.rollaxis(xis[k][d]['w'], -1)
             xis[k][d]['v'] = np.rollaxis(xis[k][d]['v'], -1)
 
@@ -82,7 +84,7 @@ def run():
 
     # Print the costs in a table with a given cell width
     print_results(savepath, 20, labels=list(controllers.keys()))
-    plot_results(savepath)
+    print(plot_distributions(savepath, 20))
 
 
 # Press the green button in the gutter to run the script.
