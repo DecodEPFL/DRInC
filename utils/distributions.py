@@ -28,13 +28,20 @@ def get_distribution(name: str, param=None):
     Provides samples from a distribution or profile with a given name.
 
     :param name: str, name of the distribution, must be one of the following:
-        - 'gaussian': Gaussian distribution with mean 0 and variance 1
+        - 'gaussian': Gaussian distribution with mean 0 and standard deviation 1
         - 'uniform': Uniform distribution on the unit interval
         - 'beta': Beta distribution with parameters param[0] and param[1]
         - 'truncated_gaussian': Truncated Gaussian distribution with mean 0 and
-            variance param[0] (default=1), truncated on the unit interval
+            s.d. param[0] (default=1), truncated on the unit interval
         - 'bimodal_gaussian': Bimodal Gaussian distribution with means
-            0 and 0.8*param[1] and standard deviation 0.2*param[0] (default=1)
+            0 and 0.8, s.d. 0.2*param[0] (default=1), and
+            total probability = 0.5*param[1] (default=1.0) for the first mode
+        - 'bimodal_gaussian_sym': Symmetric bimodal Gaussian distribution with
+            means 0 and 0.8*param[1] and s.d. 0.2*param[0] (default=1)
+        - 'log_normal': Log of a Gaussian distribution with sigma 2.0*param[0]
+            and mu -1.2 - log(5.0*param[1] - 2.0) (default=1)
+
+        Deterministic patterns can also be generated with a random phase:
         - 'constant': Constant distribution with value 1
         - 'sine': Sine profile with frequency param[0] (default=1),
             phase param[1] (default=0), and unit sampling frequency
@@ -83,12 +90,12 @@ def get_distribution(name: str, param=None):
             num[np.abs(num[:, 0]) > 1, 0] = \
                 rng.uniform(-1.0, 1.0, (np.sum(np.abs(num) > 1),))
             return num
-    elif name.lower() == "bimodal_gaussian":
+    elif name.lower() == "bimodal_gaussian_sym":
         def distribution(n):
             # Bimodal Gaussian
             num = rng.uniform(-1.0, 1.0, (n, 1))
             num = 0.2*rng.standard_normal((n, 1)) * param[0] \
-                + 0.8*(num > 0) * param[1]
+                + 0.8*(num < 0) * param[1]
 
             # Truncate the tails at 2 sigmas
             to_trunc = ((num[:, 0] > 0.8*param[1] + 0.4*param[0])
@@ -96,6 +103,31 @@ def get_distribution(name: str, param=None):
             num[to_trunc, 0] = \
                 rng.uniform(-0.4*param[0], 0.8*param[1] + 0.4*param[0],
                             (np.sum(to_trunc),))
+            return num
+    elif name.lower() == "bimodal_gaussian":
+        def distribution(n):
+            # Bimodal Gaussian
+            num = rng.uniform(param[1] - 2.0, param[1], (n, 1))
+            num = 0.2*rng.standard_normal((n, 1)) * param[0] \
+                + 0.8*(num < 0)
+
+            # Truncate the tails at 2 sigmas
+            to_trunc = ((num[:, 0] > 0.8 + 0.4*param[0])
+                        | (num[:, 0] < -0.4*param[0]))
+            num[to_trunc, 0] = \
+                rng.uniform(-0.4*param[0], 0.8 + 0.4*param[0],
+                            (np.sum(to_trunc),))
+            return num
+    elif name.lower() == "log_normal":
+        def distribution(n):
+            # Log Gaussian
+            num = np.exp(rng.standard_normal((n, 1)) * 2.0 * param[0]
+                         - (1.2 + np.log(param[1]*5.0 - 2.0)))
+
+            # Truncate the tail
+            to_trunc = (np.abs(num[:, 0]) > 0.8 + 0.4*param[0])
+            num[to_trunc, 0] = \
+                rng.uniform(0, 0.8 + 0.4*param[0], (np.sum(to_trunc),))
             return num
     elif name.lower() == "constant":
         def distribution(n):

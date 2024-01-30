@@ -7,6 +7,8 @@ JS Brouillon et. al., 2023.
 Copyright Jean-Sébastien Brouillon (2024)
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+import sys as system
+import time
 import numpy as np
 from tqdm import tqdm
 from utils.display import print_results, plot_distributions
@@ -15,12 +17,12 @@ from utils.setup_controllers import get_controllers
 from experiments.double_integrator import double_integrator_experiment, savepath
 
 
-def run():
+def run(dist=1.0, verbose=False):
     experiment = double_integrator_experiment
     _w = np.diag([1, 4, 1])
 
     # Get experiment parameters, as a list to pass directly to get_controllers
-    params = list(experiment())
+    params = list(experiment(dist=dist))
     [xis_train, xis_test] = params[-2:]
     [t_test, t_fir, radius, p_level, sys, fset, support] = params[:-2]
 
@@ -30,7 +32,7 @@ def run():
     g_full = np.kron(np.ones((t_test, 1)), fset.g)
 
     # Get controllers
-    controllers = get_controllers(*params[1:-2])
+    controllers = get_controllers(*params[1:-2], verbose=verbose)
 
     # Simulate all distributions
     c, v, x, u, y = dict(), dict(), dict(), dict(), dict()
@@ -83,10 +85,18 @@ def run():
     np.savez(savepath, c=c, v=v, x=x, u=u, y=y, xi=xis)
 
     # Print the costs in a table with a given cell width
+    print(f"radius for DRInC: {radius}, p_level: {p_level}")
+    print(f"distribution parameter: {dist}")
     print_results(savepath, 20, labels=list(controllers.keys()))
-    print(plot_distributions(savepath, 20))
+    # print(plot_distributions(savepath, 20))
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    run()
+    # Run from arguments
+    print('argument list', system.argv[1:])
+    print('time ', time.strftime("%H:%M:%S", time.localtime()))
+    for p in system.argv[1:]:
+        # 0.5 = move 1/2 of right to left or left to right
+        # => W = 0.8^2 / 4 ≈ 0.16
+        run(float(p))

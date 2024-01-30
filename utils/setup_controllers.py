@@ -19,6 +19,7 @@ try:
 except ImportError:
     drlqg_covariances = None
 
+
 def get_controllers(t_fir: int, radius: float, p_level: float,
                     sys: LinearSystem, fset: Polytope, support: Polytope,
                     verbose=False):
@@ -43,14 +44,14 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
 
     # Obtain drinc closure
     drinc = synthesize_drinc(sys, t_fir, fset, support,
-                             radius, p_level, radius/1, None, verbose)
+                             radius, p_level, radius, None, verbose)
 
     # Obtain H2 controller closure
     emp = synthesize_auglqg(sys, t_fir, fset, verbose)
 
     # Obtain robust closure, cut low probability part of support for feasibility
     rob_support = Polytope()
-    rob_support.h, rob_support.g = support.h, support.g - 0.4*np.sign(support.g)
+    rob_support.h, rob_support.g = support.h, support.g - 0.1*np.sign(support.g)
     rob = synthesize_robust(sys, t_fir, fset, rob_support, verbose)
 
     # Make lqg closure for compatibility. Use empirical covariances

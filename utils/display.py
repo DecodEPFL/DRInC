@@ -19,13 +19,19 @@ def print_results(save_path, pitch=20, labels=None):
         element 'v': nested dictionary containing the fraction of trajectories
             with at least one constrain violation. Access with
             violations[distribution][controller]
+        save_path can also be the dictionary itself.
     :param pitch: int, width of the cells in the printed table.
     :param labels: list of strings, labels for the rows of the table.
         (default: None, will use the keys of costs)
     :return: None
     """
     # Load data
-    data = np.load(save_path, allow_pickle=True)
+    if isinstance(save_path, str):
+        data = np.load(save_path, allow_pickle=True)
+    elif isinstance(save_path, dict):
+        data = save_path
+    else:
+        raise ValueError("save_path must be a string or a dictionary.")
     costs = data['c'].item()
     violations = data['v'].item()
 
@@ -49,6 +55,24 @@ def print_results(save_path, pitch=20, labels=None):
             else:
                 s += "N/A".ljust(pitch)
         print(s)
+
+    # compute the Wasserstein distance between the training and testing
+    xis = data['xi'].item()
+    wds = dict()
+    for d, (xi1, xi2) in zip(xis['train'].keys(), zip(xis['train'].values(),
+                                                      xis[
+                                                          'test'].values())):
+        # Number of time steps and states
+        n_t, n_s = xi1['w'].shape[1], xi1['w'].shape[2] + xi1['v'].shape[2]
+        # Reshape the distributions to be 2D arrays for wasserstein function
+        _xi1 = np.reshape(np.block([[[xi1['w'], xi1['v']]]]), (-1, n_s)).T
+        _xi2 = np.reshape(np.block([[[xi2['w'][:, :n_t, :],
+                                      xi2['v'][:, :n_t, :]]]]), (-1, n_s)).T
+        # Wasserstein distance
+        wds[d] = wasserstein(_xi1, _xi2) * n_t
+
+    print(wds)
+
     return
 
 
@@ -60,33 +84,25 @@ def plot_distributions(save_path, bins=20):
     :param save_path: path to npz file containing the results as a dictionary
         with an  element 'xi': a nested dictionary accessed as
         xi['train'/'test'][distribution]['w'/'v']. Each of these elements are
-        arrays of shape (samples, time steps, states/outputs).
-        For correlated distributions, time steps = 1.
+        arrays of shape (samples, time steps, states/outputs). For correlated
+        distributions, time steps = 1.
+        save_path can also be the dictionary itself.
     :param bins: number of bins for the histogram plot of the distribution.
     :return: dictionary with the Wasserstein distance between the training and
         testing distributions for each distribution.
     """
     # Load data
-    data = np.load(save_path, allow_pickle=True)
+    if isinstance(save_path, str):
+        data = np.load(save_path, allow_pickle=True)
+    elif isinstance(save_path, dict):
+        data = save_path
+    else:
+        raise ValueError("save_path must be a string or a dictionary.")
     xis = data['xi'].item()
 
-    wds = dict()
-    # compute the Wasserstein distance between the training and testing
-    for d, (xi1, xi2) in zip(xis['train'].keys(), zip(xis['train'].values(),
-                                                      xis['test'].values())):
-        # Number of time steps and states
-        n_t, n_s = xi1['w'].shape[1], xi1['w'].shape[2] + xi1['v'].shape[2]
-        # Reshape the distributions to be 2D arrays for wasserstein function
-        _xi1 = np.reshape(np.block([[[xi1['w'], xi1['v']]]]), (-1, n_s)).T
-        _xi2 = np.reshape(np.block([[[xi2['w'][:, :n_t, :],
-                                      xi2['v'][:, :n_t, :]]]]), (-1, n_s)).T
-        # Wasserstein distance
-        wds[d] = wasserstein(_xi1, _xi2)
-
     # Plot the training distributions
-    for d, xi in xis['train'].items():
-        plt.figure().suptitle(f"{d}, Wasserstein distance: "
-                              f"{np.round(wds[d], 2)}")
+    for d, xi in xis['test'].items():
+        plt.figure().suptitle(f"{d}")
         plt.hist(np.reshape(np.block([[[xi['w'], xi['v']]]]),
                             (-1, xi['w'].shape[2] + xi['v'].shape[2])),
                  bins=bins)
@@ -94,7 +110,7 @@ def plot_distributions(save_path, bins=20):
                    + ['v' + str(i+1) for i in range(xi['v'].shape[2])])
         plt.show()
 
-    return wds
+    return
 
 
 if __name__ == '__main__':
