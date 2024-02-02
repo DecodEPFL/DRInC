@@ -6,6 +6,9 @@ Copyright Jean-Sébastien Brouillon (2024)
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 import numpy as np
+import cvxpy as cp
+from utils.wasserstein_approx import wasserstein, reshape_samples
+
 rng = np.random.default_rng(123)
 implemented = ['uniform', 'truncated_gaussian', 'bimodal_gaussian',
                'constant', 'sine', 'sawtooth', 'triangle', 'step']
@@ -159,3 +162,41 @@ def get_distribution(name: str, param=None):
 
     return distribution
 
+
+def get_random_empirical(center: np.ndarray, radius: float):
+    """
+    Provides samples from a random empirical distribution in a Wasserstein
+    sphere of a given radius.
+
+    :param center: np.ndarray, center of the sphere. Empirical distribution with
+    samples in the columns.
+    :param radius: float, radius of the sphere
+    """
+    # Check that center is a matrix
+    if len(center.shape) != 2:
+        raise ValueError("The center must be a matrix.")
+
+    # Check that radius is a positive number
+    if radius <= 0:
+        raise ValueError("The radius must be a positive number.")
+
+    # Move samples randomly until the total distance is radius
+    xi = center.copy()
+    j, d = 1, 0
+    for i in range(int(1e6)):  # Cap the number of iterations
+        if np.linalg.norm(xi - center, 'fro') ** 2 \
+                >= j*radius * np.sum(center.shape):
+            d = wasserstein(center, xi)
+            if d >= radius:
+                break
+            else:
+                j += 1
+        xi += rng.uniform(-1, 1, xi.shape) * radius
+
+    # Get precise distance
+    a = np.sqrt(radius) / np.sqrt(d)
+    res = cp.Variable(xi.shape)
+    cp.Problem(cp.Minimize(a * cp.norm(xi - res, 'fro') ** 2
+                           + (1-a) * cp.norm(res - center, 'fro') ** 2)).solve()
+
+    return res.value

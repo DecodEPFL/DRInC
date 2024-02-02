@@ -19,6 +19,8 @@ def print_results(save_path, pitch=20, labels=None):
         element 'v': nested dictionary containing the fraction of trajectories
             with at least one constrain violation. Access with
             violations[distribution][controller]
+        element 'c': nested dictionary, wasserstein[distribution][controller].
+        The distance is between training and testing distributions
         save_path can also be the dictionary itself.
     :param pitch: int, width of the cells in the printed table.
     :param labels: list of strings, labels for the rows of the table.
@@ -33,45 +35,32 @@ def print_results(save_path, pitch=20, labels=None):
     else:
         raise ValueError("save_path must be a string or a dictionary.")
     costs = data['c'].item()
-    violations = data['v'].item()
+    violate = data['v'].item()
+    distances = data['w'].item()
 
     # handle optional labels
     if labels is None:
         labels = costs[list(costs.keys())[0]].keys()
 
-    # Print header
-    s = "".ljust(pitch)
     for d in costs.keys():
-        s += str(d).ljust(pitch)
-    print(s)
+        print(d)
 
-    # Print one line per controller
-    for n in labels:
-        s = str(n).ljust(pitch)
-        for d in costs.keys():
-            if n in costs[d].keys():
-                s += (str(np.round(costs[d][n], 2)) + ", "
-                      + str(np.round(violations[d][n]*100, 2))+"%").ljust(pitch)
-            else:
-                s += "N/A".ljust(pitch)
-        print(s)
+        # Print header and get number of rows
+        s = "".ljust(pitch)
+        for n in labels:
+            s += str(n).ljust(pitch)
+        print(s + "Wasserstein".ljust(pitch))
 
-    # compute the Wasserstein distance between the training and testing
-    xis = data['xi'].item()
-    wds = dict()
-    for d, (xi1, xi2) in zip(xis['train'].keys(), zip(xis['train'].values(),
-                                                      xis[
-                                                          'test'].values())):
-        # Number of time steps and states
-        n_t, n_s = xi1['w'].shape[1], xi1['w'].shape[2] + xi1['v'].shape[2]
-        # Reshape the distributions to be 2D arrays for wasserstein function
-        _xi1 = np.reshape(np.block([[[xi1['w'], xi1['v']]]]), (-1, n_s)).T
-        _xi2 = np.reshape(np.block([[[xi2['w'][:, :n_t, :],
-                                      xi2['v'][:, :n_t, :]]]]), (-1, n_s)).T
-        # Wasserstein distance
-        wds[d] = wasserstein(_xi1, _xi2) * n_t
-
-    print(wds)
+        # Print one line per parameter value
+        for i in range(len(distances[d])):
+            s = str(i).ljust(pitch)
+            for n in labels:
+                if n in costs[d].keys() and len(costs[d][n]) > i:
+                    s += (str(np.round(costs[d][n][i], 2)) + ", "
+                          + str(np.round(violate[d][n][i], 2))+"%").ljust(pitch)
+                else:
+                    s += "N/A".ljust(pitch)
+            print(s + str(distances[d][i]).ljust(pitch))
 
     return
 
@@ -115,7 +104,7 @@ def plot_distributions(save_path, bins=20):
 
 if __name__ == '__main__':
     # Print the results of this experiment
-    from experiments.double_integrator import savepath
+    from experiments.given_distributions import savepath
     print_results('../' + savepath, 20)
     print(plot_distributions('../' + savepath))
 

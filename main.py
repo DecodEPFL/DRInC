@@ -14,75 +14,81 @@ from tqdm import tqdm
 from utils.display import print_results, plot_distributions
 from utils.simulate import simulate
 from utils.setup_controllers import get_controllers
-from experiments.double_integrator import double_integrator_experiment, savepath
+from utils.wasserstein_approx import wasserstein, reshape_samples
+from experiments.random_distributions import savepath
+from experiments.random_distributions \
+    import double_integrator_experiment as rd_exp
+from experiments.given_distributions \
+    import double_integrator_experiment as gv_exp
 
 
-def run(dist=1.0, verbose=False):
-    experiment = double_integrator_experiment
+def run(experiment, dist=1.0, verbose=False):
+    experiment = rd_exp if experiment == "random" else gv_exp
     _w = np.diag([1, 4, 1])
 
     # Get experiment parameters, as a list to pass directly to get_controllers
-    params = list(experiment(dist=dist))
+    params = list(experiment(params=dist))
     [xis_train, xis_test] = params[-2:]
     [t_test, t_fir, radius, p_level, sys, fset, support] = params[:-2]
+    (_p, _n) = sys.c.shape
 
     # Matrices over the whole test horizon
-    w_full = np.kron(np.eye(t_test), _w)
-    h_full = np.kron(np.eye(t_test), fset.h)
-    g_full = np.kron(np.ones((t_test, 1)), fset.g)
+    w_f = np.kron(np.eye(t_test), _w)
+    h_f = np.kron(np.eye(t_test), fset.h)
+    g_f = np.kron(np.ones((t_test, 1)), fset.g)
 
     # Get controllers
     controllers = get_controllers(*params[1:-2], verbose=verbose)
+    tmp = np.load(savepath, allow_pickle=True)['phi'].item()
 
     # Simulate all distributions
-    c, v, x, u, y = dict(), dict(), dict(), dict(), dict()
-    for d, xis in tqdm(xis_test.items()):
+    c, v, w, phis = dict(), dict(), dict(), dict()
+    for d, xis in xis_test.items():
+        print(f"Simulating distribution {d}")
+
         # Simulate the closed loop maps
-        c[d], v[d], x[d], u[d], y[d] = dict(), dict(), dict(), dict(), dict()
-        for n, ctrl in controllers.items():
+        c[d], v[d], w[d], phis[d] = dict(), dict(), [], dict()
+        for n, ctrl in tqdm(controllers.items()):
+            phis[d][n] = None
+            c[d][n], v[d][n] = [], []
             if ctrl is None:  # Skip if controller not available
                 continue
 
-            # Simulate the closed loop map
+            # Synthesize controller
             try:
-                x[d][n], u[d][n], y[d][n], _ = \
-                    simulate(ctrl(xis_train[d], _w), sys, xis)
+                phis[d][n] = ctrl(xis_train[d], _w)
             except AttributeError:  # Control design problem infeasible
                 print(f"Warning: Controller {n} could not be synthesized"
                       f" for distribution {d}.")
                 continue
 
-            # Reformat x and u to split each time step and remove x0, u0
-            t_split = t_test+1 if n in ["LQG", "DR-LQG"] else t_test+t_fir
-            xs = np.split(x[d][n], t_split, axis=0)[-t_test:]
-            us = np.split(u[d][n], t_split, axis=0)[-t_test:]
-            ux = np.vstack([np.vstack((_x, _u)) for _x, _u in zip(xs, us)])
+        for i, xi in tqdm(enumerate(xis)):
+            for n, ctrl in controllers.items():
+                # Simulate the closed loop map
+                if phis[d][n] is None:  # Skip if controller not available
+                    continue
+                x, u, y, _ = simulate(phis[d][n], sys, xi)
 
-            # Compute the costs and the constraint violations
-            c[d][n] = np.mean([_ux.T @ w_full @ _ux for _ux in ux.T])
-            v[d][n] = np.mean([np.any(h_full @ _ux > g_full) for _ux in ux.T])
+                # Reformat x and u to split each time step and remove x0, u0
+                t_split = t_test+1 if n in ["LQG", "DR-LQG"] else t_test+t_fir
+                xs = np.split(x, t_split, axis=0)[-t_test:]
+                us = np.split(u, t_split, axis=0)[-t_test:]
+                ux = np.vstack([np.vstack((_x, _u)) for _x, _u in zip(xs, us)])
 
-    # Save the results
-    xis = {'train': dict(), 'test': dict()}
-    # Reshape the samples to split the time steps
-    # Makes the shape (samples, time steps, states/outputs)
-    for k, _v in zip(['train', 'test'], [xis_train, xis_test]):
-        # Short notation
-        (_p, _n), _t = sys.c.shape, t_fir if k == 'train' else t_test
+                # Compute the costs
+                c[d][n] += [np.mean([_ux.T @ w_f @ _ux for _ux in ux.T])]
+                # Compute the expected number of violations per time step
+                v[d][n] += [np.mean([np.sum(h_f @ _ux > g_f, axis=0)
+                                     for _ux in ux.T]) / t_split * 100]
 
-        # Deal with all distributions
-        xis[k] = dict()
-        for d, xi in _v.items():
-            xis[k][d] = dict()
-            _t2 = _t if d in ['sine', 'sawtooth', 'triangle', 'step'] else 1
-
-            xis[k][d]['w'] = xi[:_n*_t, :].reshape((-1, _n*_t2, xi.shape[1]))
-            xis[k][d]['v'] = xi[_n*_t:, :].reshape((-1, _p*_t2, xi.shape[1]))
-            xis[k][d]['w'] = np.rollaxis(xis[k][d]['w'], -1)
-            xis[k][d]['v'] = np.rollaxis(xis[k][d]['v'], -1)
+            # Reshape samples to split time steps and merge w and v
+            _xi = {'train': reshape_samples(xis_train[d], t_fir, _n, _p),
+                   'test': reshape_samples(xi, t_test, _n, _p, t_fir)}
+            # Compute the test/train Wasserstein distance squared
+            w[d] += [wasserstein(_xi['train'], _xi['test'])*t_fir]
 
     # Use .npz format
-    np.savez(savepath, c=c, v=v, x=x, u=u, y=y, xi=xis)
+    np.savez(savepath, phi=phis, xi=xis, c=c, v=v, w=w)
 
     # Print the costs in a table with a given cell width
     print(f"radius for DRInC: {radius}, p_level: {p_level}")
@@ -94,9 +100,7 @@ def run(dist=1.0, verbose=False):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     # Run from arguments
-    print('argument list', system.argv[1:])
+    print('experiment: ', system.argv[1])
+    print('parameteres: ', system.argv[2:])
     print('time ', time.strftime("%H:%M:%S", time.localtime()))
-    for p in system.argv[1:]:
-        # 0.5 = move 1/2 of right to left or left to right
-        # => W = 0.8^2 / 4 ≈ 0.16
-        run(float(p))
+    run(system.argv[2:])

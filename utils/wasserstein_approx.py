@@ -33,8 +33,7 @@ def wasserstein(xi1, xi2):
         xi1 = xi1[:, :-(xi1.shape[1] % xi2.shape[1])]
 
     # Short notations
-    _n1 = xi1.shape[1]
-    _n2 = xi2.shape[1]
+    _n1, _n2 = xi1.shape[1], xi2.shape[1]
 
     # transport cost
     _c = lambda x, y: np.linalg.norm(x - y, axis=0) ** 2
@@ -53,4 +52,31 @@ def wasserstein(xi1, xi2):
         d += np.sum((ds[ids == i])[:int(_n1/_n2)])
 
     return d / _n1
+
+
+def reshape_samples(xi, t, n_w, n_v, t_max=None, joint=False):
+    """
+    Reshapes the samples to split the time steps, not process and measurement
+    noises.
+
+    :param xi: np.ndarray, empirical distribution. Columns are samples.
+    :param t: int, number of time steps in each sample.
+    :param n_w: int, number of states.
+    :param n_v: int, number of outputs.
+    :param t_max: int, number of time steps to keep. (optional, default=t)
+    :param joint: bool, if True, the time steps are not split. It means that
+        one considers the joint distribution for all time steps. (optional)
+    """
+    # Reshape the samples to split the time steps
+    # Makes the shape (samples, time steps, states/outputs)
+    # Crop out time steps past t_max
+    _xi = dict()
+    _xi['w'] = np.rollaxis(xi[:n_w * t, :].reshape(
+        (-1, n_w * (t if joint else 1), xi.shape[1])), -1)[:, :t_max, :]
+    _xi['v'] = np.rollaxis(xi[n_w * t:, :].reshape(
+        (-1, n_v * (t if joint else 1), xi.shape[1])), -1)[:, :t_max, :]
+
+    # flatten time steps and states/outputs
+    return np.reshape(np.block([[[_xi['w'], _xi['v']]]]),
+                      (-1, _xi['w'].shape[2] + _xi['v'].shape[2])).T
 
