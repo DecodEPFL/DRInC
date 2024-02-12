@@ -22,8 +22,9 @@ from experiments.given_distributions \
     import double_integrator_experiment as gv_exp
 
 
-def run(experiment, dist=1.0, verbose=False):
+def run(experiment, dist=None, verbose=False):
     experiment = rd_exp if experiment == "random" else gv_exp
+    dist = [1.0] if dist is None else dist
     _w = np.diag([1, 4, 1])
 
     # Get experiment parameters, as a list to pass directly to get_controllers
@@ -103,4 +104,4 @@ if __name__ == '__main__':
     print('experiment: ', system.argv[1])
     print('parameteres: ', system.argv[2:])
     print('time ', time.strftime("%H:%M:%S", time.localtime()))
-    run(system.argv[2:])
+    run(system.argv[1], np.array(system.argv[2:], dtype=np.float64))
