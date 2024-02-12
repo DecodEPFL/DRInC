@@ -22,7 +22,7 @@ from experiments.given_distributions \
     import double_integrator_experiment as gv_exp
 
 
-def run(experiment, dist=None, verbose=False):
+def run(experiment, dist=None, verbose=False, redo_design=True):
     experiment = rd_exp if experiment == "random" else gv_exp
     dist = [1.0] if dist is None else dist
     _w = np.diag([1, 4, 1])
@@ -40,7 +40,7 @@ def run(experiment, dist=None, verbose=False):
 
     # Get controllers
     controllers = get_controllers(*params[1:-2], verbose=verbose)
-    tmp = np.load(savepath, allow_pickle=True)['phi'].item()
+    past_data = None if redo_design else np.load(savepath, allow_pickle=True)
 
     # Simulate all distributions
     c, v, w, phis = dict(), dict(), dict(), dict()
@@ -57,7 +57,10 @@ def run(experiment, dist=None, verbose=False):
 
             # Synthesize controller
             try:
-                phis[d][n] = ctrl(xis_train[d], _w)
+                if redo_design:
+                    phis[d][n] = ctrl(xis_train[d], _w)
+                else:
+                    phis[d][n] = (past_data['phi'].item())[d][n]
             except AttributeError:  # Control design problem infeasible
                 print(f"Warning: Controller {n} could not be synthesized"
                       f" for distribution {d}.")
@@ -102,6 +105,7 @@ def run(experiment, dist=None, verbose=False):
 if __name__ == '__main__':
     # Run from arguments
     print('experiment: ', system.argv[1])
-    print('parameteres: ', system.argv[2:])
+    print('parameters: ', system.argv[2:])
     print('time ', time.strftime("%H:%M:%S", time.localtime()))
-    run(system.argv[1], np.array(system.argv[2:], dtype=np.float64))
+    run(system.argv[1], np.array(system.argv[2:], dtype=np.float64),
+        redo_design=False)
