@@ -62,6 +62,10 @@ def print_results(save_path, pitch=20, labels=None):
                     s += "N/A".ljust(pitch)
             print(s + str(distances[d][i]).ljust(pitch))
 
+        np.savetxt(save_path[:-4] + '_' + d + '.csv',
+                   np.vstack([costs[d][n] for n in labels]).T, delimiter=',')
+        np.savetxt(save_path[:-4] + '_viol_' + d + '.csv',
+                   np.vstack([violate[d][n] for n in labels]).T, delimiter=',')
     return
 
 
