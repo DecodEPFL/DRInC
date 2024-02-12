@@ -7,6 +7,7 @@ Copyright Jean-Sébastien Brouillon (2024)
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 import numpy as np
+from tqdm import tqdm
 from utils.data_structures import LinearSystem, Polytope
 from utils.distributions import get_distribution, get_random_empirical
 from utils.wasserstein_approx import reshape_samples
@@ -76,7 +77,7 @@ def double_integrator_experiment(radius=0.05, params=None, verbose=False):
                                   for i in range(_ns)]) * noise
         xis_test[n] = []
         from utils.wasserstein_approx import wasserstein
-        for param in params:
+        for param in tqdm(params):
             # Make more samples for testing and reshape
             _xi = np.tile(xis_train[n], (1, int(_ptest[0]/_ns)))
             _xi = reshape_samples(xis_train[n], t_fir, _n, _p)

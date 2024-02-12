@@ -109,4 +109,4 @@ if __name__ == '__main__':
     exec("parameters = " + system.argv[2])
     print('parameters: ', parameters)
     print('time ', time.strftime("%H:%M:%S", time.localtime()))
-    run(system.argv[1], parameters, redo_design=False)
+    run(system.argv[1], parameters, redo_design=True)  # Put to false for test
