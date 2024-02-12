@@ -45,7 +45,7 @@ def double_integrator_experiment(radius=0.05, params=None, verbose=False):
     # Number of samples. The list contains parameters for distributions.
     # Their values are explained in utils/distributions.py
     # testing distribution's second parameter is in params
-    _ptrain, _ptest = (50, [0.5, 0.5]), (10000, None)
+    _ptrain, _ptest = (100, [0.5, 0.5]), (10000, None)
 
     # System definition
     sys = LinearSystem()

@@ -104,8 +104,9 @@ def run(experiment, dist=None, verbose=False, redo_design=True):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     # Run from arguments
+    #print('input: ', system.argv[1:])
     print('experiment: ', system.argv[1])
-    print('parameters: ', system.argv[2:])
+    exec("parameters = " + system.argv[2])
+    print('parameters: ', parameters)
     print('time ', time.strftime("%H:%M:%S", time.localtime()))
-    run(system.argv[1], np.array(system.argv[2:], dtype=np.float64),
-        redo_design=False)
+    run(system.argv[1], parameters, redo_design=False)
