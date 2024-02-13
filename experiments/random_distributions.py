@@ -15,7 +15,7 @@ from utils.wasserstein_approx import reshape_samples
 savepath = "results/double_integrator.npz"
 
 
-def double_integrator_experiment(radius=0.05, params=None, verbose=False):
+def double_integrator_experiment(radius=0.1, params=None, verbose=False):
     """
     This function runs the experiment for the double integrator system.
     It returns the system, the support, the feasible set, the training and
@@ -42,7 +42,7 @@ def double_integrator_experiment(radius=0.05, params=None, verbose=False):
     # Time horizons, problem ill conditioned if t_fir < 5
     t_fir, t_test = 10, 10
     # Feasible set size, cvar probability level, and noise level
-    feas_r, p_level, noise = 70.0, 5e-2, 1.0  # 70
+    feas_r, p_level, noise = 70.0, 0.1, 1.0  # 70
     # Number of samples. The list contains parameters for distributions.
     # Their values are explained in utils/distributions.py
     # testing distribution's second parameter is in params
