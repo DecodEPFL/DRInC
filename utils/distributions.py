@@ -184,18 +184,22 @@ def get_random_empirical(center: np.ndarray, radius: float):
     xi = center.copy()
     j, d = 1, 0
     for i in range(int(1e6)):  # Cap the number of iterations
+        # If we moved a lot, check the Wasserstein distance
+        # This avoids useless computational burden
         if np.linalg.norm(xi - center, 'fro') ** 2 \
                 >= j*radius * np.sum(center.shape):
             d = wasserstein(center, xi)
-            if d >= radius:
+            if d >= radius:  # Stop if already moved enough
                 break
             else:
                 j += 1
+        # Randomly move the samples
         xi += rng.uniform(-1, 1, xi.shape) * radius
 
-    # Get precise distance
+    # Get precise distance with Geodesic projections
     a = np.sqrt(radius) / np.sqrt(d)
     res = cp.Variable(xi.shape)
+    # I think there is a closed-form solution, but I'm lazy to compute it.
     cp.Problem(cp.Minimize(a * cp.norm(xi - res, 'fro') ** 2
                            + (1-a) * cp.norm(res - center, 'fro') ** 2)).solve()
 

@@ -68,7 +68,7 @@ def double_integrator_experiment(radius=0.1, params=None, verbose=False):
 
     # Generate training and testing samples
     xis_train, xis_test = dict(), dict()
-    for n in ['bimodal_gaussian']:#, 'log_normal', 'beta']:
+    for n in ['bimodal_gaussian', 'beta']:
         d = get_distribution(n, _ptrain[1])
         xis_train[n] = np.hstack([np.vstack([d(_n * t_fir), d(_p * t_fir)])
                                   for i in range(_ptrain[0])]) * noise

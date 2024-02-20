@@ -80,10 +80,11 @@ def run(experiment, dist=None, verbose=False, redo_design=True):
                 ux = np.vstack([np.vstack((_x, _u)) for _x, _u in zip(xs, us)])
 
                 # Compute the costs
-                c[d][n] += [np.mean([_ux.T @ w_f @ _ux for _ux in ux.T])]
+                c[d][n] += [np.mean([_ux.T @ w_f @ _ux / t_test
+                                     for _ux in ux.T])]
                 # Compute the expected number of violations per time step
                 v[d][n] += [np.mean([np.sum(h_f @ _ux > g_f, axis=0)
-                                     for _ux in ux.T]) / t_split * 100]
+                                     for _ux in ux.T]) / t_test * 100]
 
             # Reshape samples to split time steps and merge w and v
             _xi = {'train': reshape_samples(xis_train[d], t_fir, _n, _p),
