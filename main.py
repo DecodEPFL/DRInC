@@ -70,6 +70,8 @@ def run(experiment, dist=None, verbose=False, redo_design=True):
             for n, ctrl in controllers.items():
                 # Simulate the closed loop map
                 if phis[d][n] is None:  # Skip if controller not available
+                    c[d][n] += [0.0]
+                    v[d][n] += [0.0]
                     continue
                 x, u, y, _ = simulate(phis[d][n], sys, xi)
 

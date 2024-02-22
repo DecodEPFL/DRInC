@@ -16,6 +16,9 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+#colors = ['#3D6BB6', '#94A5C4', '#CCD1DD', '#CFB9B7', '#614947', '#4F2020']
+colors = np.array(sns.color_palette(None, n_colors=8))[[0, 1, 2, 3, 4, 7]]
+
 
 def melt_and_add_category(df):
     # Melt the DataFrame to reshape it
@@ -37,8 +40,9 @@ def plot_bars(filename, ylabels):
         df = pd.read_csv(filename.split(".")[0] + affix + ".csv", header=None)
         # df = df.drop(columns=1, axis=1)
         # Rename the columns
-        df = df.rename(columns={0: "DRInC", 1: "Emp", 2: "Robust", 3: "LQG",
-                                4: "DRLQG", 5: "Wasserstein distance"})
+        df = df.rename(columns={0: "DRInC", 1: "Empirical", 2: "Robust",
+                                3: "LQG", 4: "DRLQG",
+                                5: "Wasserstein distance"})
 
         # Round the Wasserstein distance to the nearest 0.02
         # The data should be much closer than that
@@ -50,13 +54,14 @@ def plot_bars(filename, ylabels):
 
         # Create the box plot using Seaborn
         sns.boxplot(x='Method', y='Value', hue='Category',
-                    data=melted_df, ax=ax)
+                    data=melted_df, ax=ax, palette=colors)
 
         # Set plot labels and legend
         ax.set_ylabel(lab)
+        ax.set_ylim(8 if affix == '' else None, None, auto=True)
         ax.legend(title='Wasserstein distance (ordered)',
                   ncol=round(np.max(df.iloc[:, -1].to_numpy() / 0.02)),
-                  columnspacing=0.8)
+                  columnspacing=1.2)
 
     # Only set xlabel at the bottom
     axs[0].set_xlabel('')
@@ -67,10 +72,9 @@ def plot_scatter(filename, ylabels):
     threshold_value = 0.14
 
     # Define colors and markers for each column
-    colors = ['blue', 'brown', 'green', 'red', 'purple']
-    labels = ['DRInC', 'Emp', 'Robust', 'LQG', 'DRLQG']
+    labels = ['DRInC', 'Empirical', 'Robust', 'LQG', 'DRLQG']
     markers = ['o', '<', 's', '^', 'D']
-    ticks = [0.01] + list(np.arange(0.02, 0.14, 0.02))
+    ticks = [0.015] + list(np.arange(0.02, 0.14, 0.02))
 
     # Create scatter plot
     sns.set_style("whitegrid")
@@ -91,7 +95,8 @@ def plot_scatter(filename, ylabels):
 
             # Add trend line
             sns.regplot(x=df[df.columns[-1]], y=df[column], scatter=False,
-                        color=colors[i], order=3, ax=ax)
+                        color=colors[i], order=3, ax=ax,
+                        line_kws={'linewidth': 1})
 
         # Set plot labels and legend
         ax.set_xscale('log')
@@ -99,7 +104,9 @@ def plot_scatter(filename, ylabels):
         ax.set_xticklabels(["{:.2f}".format(tick) for tick in ticks])
         ax.set_ylabel(lab)
         ax.set_xlabel('Wasserstein distance')
-        ax.legend()
+        ax.set_ylim(-6, None, auto=True)
+        ax.legend(ncol=len(labels), columnspacing=0.8,
+                  loc="lower right")
 
     # Only set xlabel at the bottom
     axs[0].set_xlabel('')

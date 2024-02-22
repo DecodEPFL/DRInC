@@ -11,23 +11,30 @@ Copyright Jean-Sebastien Brouillon (2024)
 
 import sys as system
 import matplotlib.pyplot as plt
+import tikzplotlib
 from experiments.read_results import plot_bars, plot_scatter
 
 
 def plot_results(path, plot_func):
+    # Tikz bugfixes
+    scat_ticks = "{0.015,0.02,0.04,0.06,0.08,0.1,0.12}"
+
     # Plot costs
     for file in ['double_integrator_beta.csv',
                  'double_integrator_bimodal_gaussian.csv']:
         plot_func(path + '/' + file, ['Realized control cost',
                                       'Realized constraint violations [%]'])
+        tikzplotlib.save(path + '/' + file.split(".")[0] + ".tex",
+                         axis_height='4.8cm', axis_width='8.4cm', textsize=6.0,
+                         extra_axis_parameters=["xmajorticks=true",
+                                                "ymajorticks=true",
+                                                "ylabel style={yshift=-0.3cm},",
+                                                "legend style={font=\\small},"]
+                         + (["xticklabels=" + scat_ticks, "xtick=" + scat_ticks]
+                         if plot_func == plot_scatter else []))
 
-    # # Plot constraint violations
-    # for file in ['double_integrator_viol_beta.csv',
-    #              'double_integrator_viol_bimodal_gaussian.csv']:
-    #     plot_func(path + '/' + file, 'Realized constraint violations [%]')
-
-    # Show all four plots
     plt.show()
+
 
 
 if __name__ == "__main__":

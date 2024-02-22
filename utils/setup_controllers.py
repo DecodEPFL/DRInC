@@ -82,7 +82,7 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
         print("Warning: Install pytorch to enable DR-LQG. Skipping...")
         drlqg = None
 
-    return {"DRInC": drinc, "Robust": rob, "LQG": lqg,
+    return {"DRInC": drinc, "Emp": None, "Robust": rob, "LQG": lqg,
             "DR-LQG": drlqg}
 
 

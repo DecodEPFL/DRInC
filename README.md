@@ -33,7 +33,7 @@ or `python main.py default "[0.5 1.0 1.5]"`.
 To generate the results from the paper, run the following commands. The first 
 set of commands generates the results for the random distributions.
 
-`python3 main.py random "sum([[I/50]*1000 for i in range(1,7)], [])"` <br />
+`python3 main.py random "sum([[i/50]*1000 for i in range(1,7)], [])"` <br />
 `python3 plot_results.py bars`
 
 The second set of commands for the run the experiment with parametric 
@@ -43,4 +43,6 @@ distributions.
 `python3 plot_results.py scatter`
 
 The results are saved in the folder `results/` and are overwritten if the
-experiment is run again.
+experiment is run again. Note that the "Emp" controller is not implemented and
+will return only zeros. The "Emp" controller presented in the paper is obtained
+by running DRInC with a radius of 0.0001, and adding the results manually.
