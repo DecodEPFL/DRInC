@@ -30,12 +30,82 @@ def split_clm(phi, n_states, t_fir):
             for i in range(t_fir)]
 
 
+def clm_to_dyn_ctrl(phi: np.ndarray, sys: LinearSystem):
+    """
+    Transform the closed loop map phi into a dynamical controller. This
+    provides a practical implementation of the controller. The controller's
+    parameters are in Canonical form using inputs 'y' from t-T to t and
+    internal state 'd' from t-T to t-1:
+    A = [0 I 0 0 0                              B = [0
+         0 0 I 0 0                                   0
+         0 0 0 I 0                                   0
+         0 0 0 0 I                                   0
+         0 -Phi[:n, :n*(T-1)]]                       -Phi[:n, -p*(T+1):]]
+    C = [Phi[n:, :n*(T-1)] Phi[n:, :-p]C]      D = Phi[n:, -p*(T+1):]
+
+    The inputs y from t-T to t are then merged in the states. This yields
+    A = [0 I 0 0 0              0 0
+         0 0 I 0 0              0 0
+         0 0 0 I 0              0 0
+         0 0 0 0 I              0 0
+         0 -Phi[:n, :n*(T-1)]   0 0 -Phi[:n, -p*(T+1):-p]
+         0 0 0 0 0              0 I
+         0 0 0 0 0              0 0]
+    B = [0 0 0 0 -Phi[:n, -p:].T 0 I].T
+    C = [Phi[n:, :n*(T-1)] Phi[n:, :-p]C Phi[n:, -p*(T+1):]]
+
+    :param phi: SLS closed loop map phi.
+    :param sys: LinearSystem, system to control
+    """
+    _ctrl = LinearSystem()
+
+    # Check that we don't already have a dynamical system
+    if isinstance(phi, LinearSystem):
+        # Avoid nonsense with imaginary d member
+        _ctrl.a, _ctrl.b, _ctrl.c = phi.a, phi.b, phi.c
+        return _ctrl
+
+    # Get dimensions
+    _n = sys.a.shape[0]
+    _m = sys.b.shape[1] if sys.b is not None else 0
+    _p = sys.c.shape[0] if sys.c is not None else 0
+    sys.c = None if _p == 0 else sys.c
+    sys.b = None if _m == 0 else sys.b
+    _np = _n + _p
+    _fir = int(phi.shape[1] / _np)
+
+    # Check that the closed loop map and samples are compatible
+    if _fir != phi.shape[1] / _np:
+        raise ValueError(f"The closed loop map is not compatible"
+                         f"with the system's dimensions")
+
+    # Make dynamical system
+    _ctrl.a = np.block(
+        [[np.zeros((_n * (_fir-2), _n)), np.eye(_n * (_fir-2)),
+          np.zeros((_n * (_fir-2), _p * _fir))],
+         [np.zeros((_n, _n)), -phi[:_n, :_n * (_fir-2)],
+          np.zeros((_n, _p)), -phi[:_n, -_p*_fir:-_p]],
+         [np.zeros((_p * _fir, _n * (_fir-1))), np.eye(_p * _fir, k=_p)]])
+    _ctrl.b = np.block([[np.zeros((_n * (_fir - 2), _p))],
+                        [phi[:_n, -_p:] if _p > 0 else np.zeros((_m, 0))],
+                        [np.zeros((_p * (_fir - 1), _p))], [np.eye(_p)]])
+    _ctrl.c = np.block([[phi[_n:, :_n * (_fir - 2)], ((phi[_n:, -_p:]
+                         @ sys.c) if _p > 0 else np.zeros((_m, _n))),
+                         phi[_n:, phi.shape[1]-_p*_fir:]]])
+    if _p == 0:
+        _ctrl.b = np.block([[np.zeros((_n * (_fir - 2), _n))], [np.eye(_n)]])
+    if _m == 0:
+        raise NotImplementedError("Observers are not implemented yet.")
+    return _ctrl
+
+
 def simulate(phi, sys: LinearSystem,
              xis_profile: np.ndarray, x0: np.ndarray = None):
     """
     Simulates the closed loop system defined by the SLS closed loop map phi
     and the system sys, with the noise distribution given by the empirical
     distribution xis_profile.
+
     :param phi: SLS closed loop map phi if phi is an np.ndarray, or dynamical
         controller if phi is a LinearSystem.
     :param sys: LinearSystem, system to simulate
@@ -60,49 +130,24 @@ def simulate(phi, sys: LinearSystem,
 
     # Check that the system is compatible
     if sys.b is not None and sys.b.shape[0] != sys.a.shape[0]:
-        raise ValueError("Different number of rows in A and B.")
+        raise ValueError(f"Different number of rows in A and B. "
+                         f"{sys.a.shape[0]} != {sys.b.shape[0]}")
     if sys.c is not None and sys.c.shape[1] != sys.a.shape[0]:
-        raise ValueError("Different number of columns in A and C.")
+        raise ValueError(f"Different number of columns in A and C. "
+                         f"{sys.a.shape[0]} != {sys.c.shape[1]}")
 
-    # Transform closed loop map into dynamical controller
+    # Transform closed loop map into dynamical controller if needed
     if not isinstance(phi, LinearSystem):
-        _ctrl = LinearSystem()
         _fir = int(phi.shape[1] / _np)
-        _phi_i = phi
-
-        # Check that the closed loop map and samples are compatible
-        if _fir != phi.shape[1] / _np:
-            raise ValueError(f"The closed loop map is not compatible"
-                             f"with the system's dimensions")
-        if _t != xis_profile.shape[0] / _np:
-            raise ValueError(f"The samples are not compatible"
-                             f"with the system's dimensions")
-
-        """
-        Canonical form: inputs 'y' from t-T to t
-        and internal state 'd' from t-T to t-1
-        A = [0 I 0 0 0                              B = [0
-             0 0 I 0 0                                   0
-             0 0 0 I 0                                   0
-             0 0 0 0 I                                   0
-             0 -Phi[:n, :n*(T-1)]]                       -Phi[:n, -p*(T+1):]]
-        C = [Phi[n:, :n*(T-1)] Phi[n:, :-p] C]      D = Phi[n:, -p*(T+1):]
-        """
-        _ctrl.a = np.block([[np.zeros((_n*(_fir-2), _n)), np.eye(_n*(_fir-2))],
-                            [np.zeros((_n, _n)), -phi[:_n, :_n*(_fir-2)]]])
-        _ctrl.b = np.block([[np.zeros((_n*(_fir-2), _p*_fir))],
-                            [-phi[:_n, -_p*_fir:]]])
-        _ctrl.c = np.block([[phi[_n:, :_n*(_fir-2)], phi[_n:, -_p:]
-                             @ (sys.c if sys.c is not None else 1)]])
-        _ctrl.d = phi[_n:, -_p*_fir:]
-        phi = _ctrl
-
+        # Implement CLM as dynamical system
+        phi = clm_to_dyn_ctrl(phi, sys)
     else:
         _fir = 1
-        if not hasattr(phi, 'd'):
-            phi.d = None
 
-    # States of controller
+    if not hasattr(phi, 'd'):
+        phi.d = None
+
+    # Number of states in controller
     _nc = phi.a.shape[0]
 
     # Check that the controller is square
@@ -112,19 +157,23 @@ def simulate(phi, sys: LinearSystem,
     # Check that the controller is compatible
     if phi.b is not None:
         if phi.b.shape[0] != phi.a.shape[0]:
-            raise ValueError("Different number of rows in A and B.")
+            raise ValueError(f"Different number of rows in A and B. "
+                             f"{phi.a.shape[0]} != {phi.b.shape[0]}")
         if phi.d is not None:
             if phi.d.shape[1] != phi.b.shape[1]:
-                raise ValueError("Different number of columns in B and D.")
+                raise ValueError(f"Different number of columns in B and D. "
+                                 f"{phi.b.shape[1]} != {phi.d.shape[1]}")
     elif sys.c is not None:
         raise ValueError("The controller must have an input if the system has"
                          "an output.")
     if phi.c is not None:
         if phi.c.shape[1] != phi.a.shape[0]:
-            raise ValueError("Different number of columns in A and C.")
+            raise ValueError(f"Different number of columns in A and C. "
+                             f"{phi.a.shape[0]} != {phi.c.shape[1]}")
         if hasattr(phi, 'd') and phi.d is not None:
             if phi.d.shape[0] != phi.c.shape[0]:
-                raise ValueError("Different number of rows in C and D.")
+                raise ValueError(f"Different number of rows in C and D. "
+                                 f"{sys.c.shape[0]} != {sys.d.shape[0]}")
     elif sys.b is not None:
         raise ValueError("The controller must have an output if the system has"
                          "an input.")
@@ -144,12 +193,15 @@ def simulate(phi, sys: LinearSystem,
 
     # Initial state of the controller, input and output
     # d = estimate disturbance
-    d0 = np.vstack([np.eye(_nc, k=_n*(_fir-i-1)) for i in range(0, _fir)]) \
-        @ ((x0[:_n * (_fir - 1), :] - x0[_n:, :]) if _fir > 1 else 0*x0)
-    y0 = np.kron(np.eye(_fir), sys.c) @ x0 \
+    d0 = np.vstack([np.vstack([
+        (np.eye(_nc - _p * _fir, k=_n*(_fir-i-1))
+         @ (x0[:_n * (_fir - 1), :] - x0[_n:, :]) if _fir > 1 else 0*x0),
+        np.kron(np.eye(_fir, k=_fir-i-1), sys.c) @ x0 if sys.c is not None
+        else np.zeros((0, _ns))]) for i in range(0, _fir)])
+    y0 = np.kron(np.eye(_fir), sys.c) @ x0[-_n * _fir:, :] \
         if sys.c is not None else np.zeros((0, _ns))
     u0 = np.vstack((np.zeros(((_fir-1)*_m, _ns)), phi.c @ d0[-_nc:, :]
-                    + (phi.d @ y0 if phi.d is not None else 0))) \
+                    + (phi.d @ y0[-_p, :] if phi.d is not None else 0))) \
         if sys.b is not None else np.zeros((0, _ns))
 
     # Declare simulation variables
@@ -167,85 +219,15 @@ def simulate(phi, sys: LinearSystem,
         tf = t + _fir
         x[_n*tf:_n*(tf+1), :] = sys.a @ x[_n*(tf-1):_n*tf, :] \
             + xis_profile[_n*t:_n*(t+1), :] \
-            + (sys.b @ u[_m*(tf-1):_m*tf, :] if sys.b is not None else 0)
+            + (sys.b @ u[_m*(tf-1):_m*tf, :] if _m > 0 else 0)
         if sys.c is not None:
             y[_p*tf:_p*(tf+1), :] = sys.c @ x[_n*tf:_n*(tf+1), :] \
                 + xis_profile[-_p*(_t-t):-_p*(_t-t-1) if t != _t-1 else None, :]
 
+        y_c = y[_p*tf:_p*(tf+1), :] if _p > 0 else x[_n*tf:_n*(tf+1), :]
         d[_nc*tf:_nc*(tf+1), :] = phi.a @ d[_nc*(tf-1):_nc*tf, :] \
-            + (phi.b @ y[_p*t+_p:_p*(tf+1), :] if phi.b is not None else 0)
+            + (phi.b @ y_c if phi.b is not None else 0)
         if sys.b is not None:
-            u[_m*tf:_m*(tf+1), :] = phi.c @ d[_nc*tf:_nc*(tf+1), :] \
-                + (phi.d @ y[_p*t+_p:_p*(tf+1), :] if phi.d is not None else 0)
+            u[_m*tf:_m*(tf+1), :] = phi.c @ d[_nc*tf:_nc*(tf+1), :]
 
     return x, u, y, d
-
-
-def _simulate_dyn(phi: np.ndarray, sys: LinearSystem,
-                  xis_profile: np.ndarray, x0: np.ndarray = None):
-    """
-    Implementation of simulate for the closed loop map case.
-    """
-    # Short notations
-    _ns = xis_profile.shape[1]
-    _n = sys.a.shape[0]
-    _m = sys.b.shape[1] if sys.b is not None else 0
-    _p = sys.c.shape[0] if sys.c is not None else 0
-    _np = _n + _p
-    _fir = int(phi.shape[1] / (_n + _p))
-    _t = int(xis_profile.shape[0] / (_n + _p))
-
-    # Check that the closed loop map and samples are compatible
-    if _fir != phi.shape[1] / (_n + _p):
-        raise ValueError(f"The closed loop map is not compatible"
-                         f"with the system's dimensions")
-    if _t != xis_profile.shape[0] / (_n + _p):
-        raise ValueError(f"The samples are not compatible"
-                         f"with the system's dimensions")
-
-    # Initial state
-    if x0 is None:
-        x0 = np.zeros((int(phi.shape[1]*_n / (_n+_p)), 1))
-    else:
-        if x0.shape[0] != int(phi.shape[1]*_n / (_n+_p)):
-            raise ValueError(f"The initial state is not compatible"
-                             f"with the system. Its dimension must be equal to"
-                             f"the product of the number of delay terms in the"
-                             f"closed loop map and the number of states."
-                             f"Got {x0.shape[0]} instead of "
-                             f"{phi.shape[1]*_n / (_n+_p)}.")
-        if len(x0.shape) == 1:
-            x0 = x0[:, None]
-        if x0.shape[1] != 1:
-            raise ValueError(f"Only one initial state and input trajectory"
-                             f"can be provided, got {x0.shape[1]} instead.")
-    # We do not check that xu0 is compatible with the system's dynamics
-
-    # Change the closed loop map structure to slide better on longer horizons
-    phi = np.hstack(split_clm(phi, _n, _fir))
-
-    # Simulate the closed loop system
-    xu = np.zeros(((_n+_p)*(_t-_fir), _ns))
-    for i, xi in enumerate(xis_profile.T):
-        for t in range(_t-_fir):
-            # The time for xu and xi are shifted by _fir
-            xu[t*_np:(t+1)*_np, i] = phi @ xi[t*_np:(t+_fir)*_np]
-
-    # Extract the states and inputs
-    x = np.vstack((x0 @ np.ones((1, _ns)), np.zeros((_n*(_t - _fir), _ns))))
-    u = np.zeros((_m*_t, _ns)) if sys.b is not None else None
-    for t in range(_fir, _t):
-        tf = t - _fir
-        x[t*_n:(t+1)*_n, :] = xu[tf*_np:tf*_np+_n, :]
-        if sys.b is not None:
-            u[t*_m:(t+1)*_m, :] = xu[tf*_np+_n:(tf+1)*_np, :]
-
-    # Extract the outputs
-    if sys.c is not None:
-        y = np.zeros((_p*_t, _ns))
-        for t in range(_t):
-            y[t*_p:(t+1)*_p, :] = sys.c @ x[t*_n:(t+1)*_n, :]
-    else:
-        y = None
-
-    return x, u, y

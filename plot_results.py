@@ -24,6 +24,9 @@ def plot_results(path, plot_func):
                  'double_integrator_bimodal_gaussian.csv']:
         plot_func(path + '/' + file, ['Realized control cost',
                                       'Realized constraint violations [%]'])
+
+        # Save the plot as a .tex file
+        # height of cost bar plot must be changed to 6.4cm manually
         tikzplotlib.save(path + '/' + file.split(".")[0] + ".tex",
                          axis_height='4.8cm', axis_width='8.4cm', textsize=6.0,
                          extra_axis_parameters=["xmajorticks=true",

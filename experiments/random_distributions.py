@@ -13,6 +13,7 @@ from utils.distributions import get_distribution, get_random_empirical
 from utils.wasserstein_approx import reshape_samples
 
 savepath = "results/double_integrator.npz"
+savepath = "results/controllers/random_ctrl_r01_p01.npz"
 
 
 def double_integrator_experiment(radius=0.1, params=None, verbose=False):

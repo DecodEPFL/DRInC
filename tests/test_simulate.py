@@ -7,7 +7,8 @@ from achievability import achievability_constraints
 
 def test_simulate(verbose=False):
     """
-    tests the achievability constraints generation for a random closed loop map.
+    tests the utils.simulate module and makes sure that the dynamical system
+    implementation of the closed loop maps equals the FIR one.
     :param verbose: bool, if True, prints the optimization verbose.
     """
     _tf, _t = 5, 10

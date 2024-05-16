@@ -58,6 +58,7 @@ def plot_bars(filename, ylabels):
 
         # Set plot labels and legend
         ax.set_ylabel(lab)
+        ax.set_xlabel('')
         ax.set_ylim(8 if affix == '' else None, None, auto=True)
         ax.legend(title='Wasserstein distance (ordered)',
                   ncol=round(np.max(df.iloc[:, -1].to_numpy() / 0.02)),

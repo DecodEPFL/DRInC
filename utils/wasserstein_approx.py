@@ -73,6 +73,9 @@ def reshape_samples(xi, t, n_w, n_v, t_max=None, joint=False):
     _xi = dict()
     _xi['w'] = np.rollaxis(xi[:n_w * t, :].reshape(
         (-1, n_w * (t if joint else 1), xi.shape[1])), -1)[:, :t_max, :]
+    if n_v == 0:  # Return here if states only
+        return np.reshape(_xi['w'], (-1, _xi['w'].shape[2])).T
+
     _xi['v'] = np.rollaxis(xi[n_w * t:, :].reshape(
         (-1, n_v * (t if joint else 1), xi.shape[1])), -1)[:, :t_max, :]
 

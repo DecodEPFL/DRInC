@@ -31,7 +31,7 @@ def run(experiment, dist=None, verbose=False, redo_design=True):
     params = list(experiment(params=dist))
     [xis_train, xis_test] = params[-2:]
     [t_test, t_fir, radius, p_level, sys, fset, support] = params[:-2]
-    (_p, _n) = sys.c.shape
+    (_p, _n) = sys.c.shape if sys.c is not None else (0, sys.a.shape[0])
 
     # Matrices over the whole test horizon
     w_f = np.kron(np.eye(t_test), _w)
@@ -59,6 +59,7 @@ def run(experiment, dist=None, verbose=False, redo_design=True):
             try:
                 if redo_design:
                     phis[d][n] = ctrl(xis_train[d], _w)
+                    print(d, n, phis[d][n])
                 else:
                     phis[d][n] = (past_data['phi'].item())[d][n]
             except AttributeError:  # Control design problem infeasible
@@ -94,6 +95,14 @@ def run(experiment, dist=None, verbose=False, redo_design=True):
             # Compute the test/train Wasserstein distance squared
             w[d] += [wasserstein(_xi['train'], _xi['test'])*t_fir]
 
+    # Save controllers separately in Matlab format for analysis
+    from utils.simulate import clm_to_dyn_ctrl
+    from scipy.io import savemat
+    ctrls = {d: {str(n).replace('-', ''): clm_to_dyn_ctrl(phis[d][n], sys)
+                 if phis[d][n] is not None else [] for n in phis[d].keys()}
+             for d in phis.keys()}
+    savemat(savepath.split('.')[0] + "_ctrl.mat", ctrls)
+
     # Use .npz format
     np.savez(savepath, phi=phis, xi=xis, c=c, v=v, w=w)
 
@@ -112,4 +121,4 @@ if __name__ == '__main__':
     exec("parameters = " + system.argv[2])
     print('parameters: ', parameters)
     print('time ', time.strftime("%H:%M:%S", time.localtime()))
-    run(system.argv[1], parameters, redo_design=True)  # Put to false for test
+    run(system.argv[1], parameters, redo_design=False)  # Put to false for test

@@ -40,19 +40,26 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
     :param verbose: bool, if True, prints the optimization verbose.
     :return: list of closures for each controller in controller_names.
     """
-    _n, _p = sys.a.shape[0], sys.c.shape[0]
+    _n, _p = sys.a.shape[0], sys.c.shape[0] if sys.c is not None else 0
+    radius_emp = 1e-3
 
     # Obtain drinc closure
     drinc = synthesize_drinc(sys, t_fir, fset, support,
                              radius, p_level, radius, None, verbose)
 
     # Obtain H2 controller closure
-    emp = synthesize_auglqg(sys, t_fir, fset, verbose)
+    emp = synthesize_drinc(sys, t_fir, fset, support, radius_emp,
+                           p_level, radius_emp, None, verbose)
 
     # Obtain robust closure, cut low probability part of support for feasibility
     rob_support = Polytope()
     rob_support.h, rob_support.g = support.h, support.g - 0.1*np.sign(support.g)
     rob = synthesize_robust(sys, t_fir, fset, rob_support, verbose)
+
+    # Return if not output feedback
+    if sys.c is None or _p == 0:
+        return {"DRInC": drinc, "Emp": emp, "Robust": rob,
+                "LQG": None, "DR-LQG": None}
 
     # Make lqg closure for compatibility. Use empirical covariances
     def lqg(xis, weights=None):
@@ -82,7 +89,7 @@ def get_controllers(t_fir: int, radius: float, p_level: float,
         print("Warning: Install pytorch to enable DR-LQG. Skipping...")
         drlqg = None
 
-    return {"DRInC": drinc, "Emp": None, "Robust": rob, "LQG": lqg,
+    return {"DRInC": drinc, "Emp": None, "Robust": rob,"LQG": lqg,
             "DR-LQG": drlqg}
 
 
