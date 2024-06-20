@@ -9,6 +9,7 @@ Copyright Jean-Sébastien Brouillon (2024)
 import numpy as np
 import cvxpy as cp
 from utils.data_structures import Polytope, LinearSystem
+from utils.simulate import clm_to_dyn_ctrl
 from achievability import achievability_constraints
 from cvar import cvar_constraints
 from dro import drinc_cost
@@ -39,7 +40,8 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
     :param verbose: bool, if True, prints the optimization verbose.
     :return: closure with signature (xis, weights) -> phi, where phi is the SLS
         closed loop map, xis are the samples of the empirical distribution at
-        the center of the Wasserstein ball (one column per sample), and weights
+        the center of the Wasserstein ball (one column per sample) and ps their
+        probabilities (1/N if none), and weights
         is the matrix square root of the weights W of the control cost
         [x_t, u_t]^T W [x_t, u_t].
     """
@@ -61,7 +63,7 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
                               radius_constraints, p_level)
     mkcost, mkcons = drinc_cost(support, radius)
 
-    def mkdrinc(xis, weights=None):
+    def mkdrinc(xis, weights=None, ps=None):
         # Check samples
         if np.max(support.h @ xis - support.g) > 0:
             raise ValueError("The samples are not in the support.")
@@ -72,7 +74,7 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
         q = cp.Variable(((_n + _p) * _t, (_n + _p) * _t))
 
         # Generate the constraints
-        cons = mkach(phi) + mkcons(q, xis) + mkcvar(phi, xis)
+        cons = mkach(phi) + mkcons(q, xis, ps) + mkcvar(phi, xis, ps)
 
         # Add the link between Q and phi
         cons += [cp.bmat([[q, (weights @ phi).T],
@@ -83,10 +85,31 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
         mskp = {'MSK_DPAR_INTPNT_CO_TOL_NEAR_REL': 1e5}
 
         # Solve the optimization problem
-        cp.Problem(cp.Minimize(mkcost(q, xis) + regular*cp.trace(q)),
+        cp.Problem(cp.Minimize(mkcost(q, xis, ps) + regular*cp.trace(q)),
                    cons).solve(solver=cp.MOSEK, verbose=verbose,
                                mosek_params=mskp)
 
         return phi.value
 
     return mkdrinc
+
+def as_dyn_system(t_fir: int, radius: float, p_level: float,
+                  sys: LinearSystem, feasible_set: Polytope, support: Polytope,
+                  xis: np.ndarray, weights: np.ndarray, ps: np.ndarray = None,
+                  radius_constraints: float = None, regular: float = None):
+    """
+    This function generates the closure that defines the distributionally robust
+    control design problem from "Distributionally Robust Infinite-horizon
+    Control" (DRInC) by JS Brouillon et. al., 2023. The closure can be used
+    afterward for various different optimization problems over the SLS closed
+    loop map phi.
+
+    :params: see synthesize_drinc.
+    :return: Linear System that implements the SLS closed loop map. At each
+        time step, the controller takes the output (or state if sys.c is None)
+        and outputs the next control input.
+    """
+    phi = synthesize_drinc(sys, t_fir, feasible_set, support, radius, p_level,
+                           radius_constraints, regular)(xis, weights, ps)
+
+    return clm_to_dyn_ctrl(phi, sys)

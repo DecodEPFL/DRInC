@@ -22,11 +22,11 @@ def split_clm(phi, n_states, t_fir):
     """
 
     phi_xw = np.split(phi[:n_states, :n_states*t_fir], t_fir, axis=1)
-    phi_uw = np.split(phi[:n_states, n_states*t_fir:], t_fir, axis=1)
-    phi_xv = np.split(phi[n_states:, :n_states*t_fir], t_fir, axis=1)
+    phi_xv = np.split(phi[:n_states, n_states*t_fir:], t_fir, axis=1)
+    phi_uw = np.split(phi[n_states:, :n_states*t_fir], t_fir, axis=1)
     phi_uv = np.split(phi[n_states:, n_states*t_fir:], t_fir, axis=1)
 
-    return [np.block([[phi_xw[i], phi_uw[i]], [phi_xv[i], phi_uv[i]]])
+    return [np.block([[phi_xw[i], phi_xv[i]], [phi_uw[i], phi_uv[i]]])
             for i in range(t_fir)]
 
 
@@ -80,22 +80,26 @@ def clm_to_dyn_ctrl(phi: np.ndarray, sys: LinearSystem):
                          f"with the system's dimensions")
 
     # Make dynamical system
-    _ctrl.a = np.block(
-        [[np.zeros((_n * (_fir-2), _n)), np.eye(_n * (_fir-2)),
-          np.zeros((_n * (_fir-2), _p * _fir))],
-         [np.zeros((_n, _n)), -phi[:_n, :_n * (_fir-2)],
-          np.zeros((_n, _p)), -phi[:_n, -_p*_fir:-_p]],
-         [np.zeros((_p * _fir, _n * (_fir-1))), np.eye(_p * _fir, k=_p)]])
-    _ctrl.b = np.block([[np.zeros((_n * (_fir - 2), _p))],
-                        [phi[:_n, -_p:] if _p > 0 else np.zeros((_m, 0))],
-                        [np.zeros((_p * (_fir - 1), _p))], [np.eye(_p)]])
-    _ctrl.c = np.block([[phi[_n:, :_n * (_fir - 2)], ((phi[_n:, -_p:]
-                         @ sys.c) if _p > 0 else np.zeros((_m, _n))),
-                         phi[_n:, phi.shape[1]-_p*_fir:]]])
     if _p == 0:
+        _ctrl.a = np.block(
+            [[np.zeros((_n * (_fir-2), _n)), np.eye(_n * (_fir-2))],
+             [np.zeros((_n, _n)), -phi[:_n, _n:_n * (_fir-1)]]])
         _ctrl.b = np.block([[np.zeros((_n * (_fir - 2), _n))], [np.eye(_n)]])
-    if _m == 0:
+        _ctrl.c = np.block([[phi[_n:, _n:_n * _fir]]])
+    elif _m == 0:
         raise NotImplementedError("Observers are not implemented yet.")
+    else:
+        _ctrl.a = np.block(
+            [[np.zeros((_n * (_fir-2), _n)), np.eye(_n * (_fir-2)),
+              np.zeros((_n * (_fir-2), _p * _fir))],
+             [np.zeros((_n, _n)), -phi[:_n, :_n * (_fir-2)],
+              np.zeros((_n, _p)), -phi[:_n, -_p*_fir:-_p]],
+             [np.zeros((_p * _fir, _n * (_fir-1))), np.eye(_p * _fir, k=_p)]])
+        _ctrl.b = np.block([[np.zeros((_n * (_fir - 2), _p))], [phi[:_n, -_p:]],
+                            [np.zeros((_p * (_fir - 1), _p))], [np.eye(_p)]])
+        _ctrl.c = np.block([[phi[_n:, :_n * (_fir - 2)], phi[_n:, -_p:] @ sys.c,
+                             phi[_n:, phi.shape[1]-_p*_fir:]]])
+
     return _ctrl
 
 

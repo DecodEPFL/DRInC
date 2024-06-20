@@ -21,9 +21,10 @@ def drinc_cost(support: Polytope, radius: float):
     various empirical centers.
     :param support: Polytope, the support of the noise distribution.
     :param radius: Radius of the Wasserstein ball.
-    :return: tuple of closures with signature (Q, xis) -> cost or cons, where
-        Q is the cost matrix, xis are the samples of the empirical distribution
-        at the center of the Wasserstein ball (one column per sample), cost the
+    :return: tuple of closures with signature (Q, xis, ps) -> cost or cons,
+        where Q is the cost matrix, xis are the samples of the empirical
+        distribution at the center of the Wasserstein ball (one column per
+        sample) and ps their probabilities (1/N if none), cost is the
         distributionally robust risk of the given Q and xis, and cons is a list
         of linear matrix inequality constraints.
     """
@@ -38,11 +39,12 @@ def drinc_cost(support: Polytope, radius: float):
     _l = cp.Variable()
     mean_si = cp.Variable()
 
-    def mkcost(q, xis):
+    def mkcost(q, xis, ps=None):
         return _l * radius + mean_si
 
-    def mkcons(q, xis):
+    def mkcons(q, xis, ps=None):
         _n = xis.shape[1]  # Number of samples
+        _p = ps if ps is not None else 1 / _n
 
         # Optimization variables
         _a = cp.Variable((1, 1))
@@ -51,7 +53,7 @@ def drinc_cost(support: Polytope, radius: float):
         _psi = cp.Variable((_H.shape[0], _n))
 
         # Equality constraints
-        cons = [mean_si == cp.sum(_s) / _n]
+        cons = [mean_si == cp.sum(cp.multiply(_p, _s))]
 
         # Inequality constraints
         cons += [_l >= 0, _mu >= 0, _psi >= _mu, _a >= 0]

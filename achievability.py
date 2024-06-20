@@ -60,11 +60,12 @@ def achievability_constraints(sys: LinearSystem, t_fir: int):
     _zm = np.hstack((np.zeros((_t, 1)), np.eye(_t)))
 
     # Define the closures for state feedback, observers, and output feedback
-    if sys.c is None:  # TODO: Not tested !!!
+    if sys.c is None:
         def mkcons(phi):
             cons = [_io @ phi @ _k(_zm, _i(_n))
                     == np.hstack((sys.a, sys.b)) @ phi @ _k(_zp, _i(_n))
-                    + _k(_zp[-1, :], _i(_n))]
+                    + _k(_zm[-1, :], _i(_n)),
+                    phi[:, :_n] == 0]  # use fir-1 for compatibility with p>0
             return cons
     elif sys.b is None:  # TODO: Not tested !!!
         def mkcons(phi):
@@ -72,6 +73,7 @@ def achievability_constraints(sys: LinearSystem, t_fir: int):
                     == phi @ np.vstack((_k(_zp, sys.a), _k(_zp, sys.c)))
                     + _k(_zp[-1, :], _i(_n))]
             return cons
+        raise NotImplementedError("Observers are not implemented yet.")
     else:
         def mkcons(phi):
             cons = [_io @ phi @

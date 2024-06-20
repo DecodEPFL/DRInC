@@ -44,7 +44,7 @@ def cvar_constraints(feasible_set: Polytope, support: Polytope,
     _j = _G.shape[0]
     _y = p_level
 
-    def mkcons(phi, xis):
+    def mkcons(phi, xis, ps=None):
         # Optimization variables
         tau = cp.Variable((1, 1))
         rho = cp.Variable()
@@ -53,10 +53,11 @@ def cvar_constraints(feasible_set: Polytope, support: Polytope,
         # Short notations
         _n = xis.shape[1]  # Number of samples
         _g = cp.vstack((feasible_set.g, -tau))
+        _p = ps if ps is not None else 1 / _n
 
         # One-of Constraints
         cons = [rho >= 0,
-                rho*radius + (_y - 1)/_y * tau + 1/_n * cp.sum(zeta) <= 0]
+                rho*radius + (_y-1)/_y*tau + cp.multiply(_p, cp.sum(zeta)) <= 0]
 
         # Wasserstein ball constraints
         for i, xii in enumerate(xis.T):
