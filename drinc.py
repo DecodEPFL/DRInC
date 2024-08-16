@@ -67,6 +67,9 @@ def synthesize_drinc(sys: LinearSystem, t_fir: int, feasible_set: Polytope,
         # Check samples
         if np.max(support.h @ xis - support.g) > 0:
             raise ValueError("The samples are not in the support.")
+        # Check samples
+        if ps is not None and np.sum(ps) != 1:
+            raise ValueError("The probabilities do not sum to 1.")
 
         # Variables
         weights = np.eye(_n + _m) if weights is None else weights

@@ -41,7 +41,7 @@ def double_integrator_experiment(radius=0.1, params=None, verbose=False):
     uni = get_distribution("uniform")
 
     # System dimensions
-    _m, _n, _p = 1, 2, 0
+    _m, _n, _p = 3, 3, 0
     # Time horizons, problem ill conditioned if t_fir < 5
     t_fir, t_test = 10, 50
     # Feasible set size, cvar probability level, and noise level
@@ -53,8 +53,8 @@ def double_integrator_experiment(radius=0.1, params=None, verbose=False):
 
     # System definition
     sys = LinearSystem()
-    sys.a, sys.b, sys.c = np.array([[1, 1], [0, 1]]), \
-        np.array([[0], [1]]), None
+    sys.a, sys.b, sys.c = np.diag([1, 1, 0]), \
+        np.array([[0, 1, 0], [0, 0, 1], [1, 1, 1]]), None
 
     # Support definition as a box [-0.2*noise, 1.0*noise]^d
     support = Polytope()
@@ -65,8 +65,8 @@ def double_integrator_experiment(radius=0.1, params=None, verbose=False):
 
     # Feasible set definition 10*x1 <= feas_r, x2 <= feas_r
     fset = Polytope()
-    fset.h = np.vstack((np.diag([10, 1, 0]), -np.diag([10, 1, 0])))
-    fset.g = feas_r * np.ones((2 * (_n + _m), 1))
+    fset.h = np.vstack((np.diag([1, 1, 0, 0, 0, 0]), -np.diag([1, 1, 0, 0, 0, 0])))
+    fset.g = 100*np.array(([96]*2 + [0]*4)*2)[:, None]# feas_r * np.ones((2 * (_n + _m), 1))
 
     # Make sure t_test is a multiple of t_fir
     t_test = int(t_test/t_fir) * t_fir
@@ -90,7 +90,7 @@ def double_integrator_experiment(radius=0.1, params=None, verbose=False):
 
 if __name__ == "__main__":
     # Run the experiment
-    _w = np.diag([1, 4, 1])
+    _w = np.diag([1, 1, 1]*2)
     verbose = False
 
     # Get experiment parameters, as a list to pass directly to get_controllers
